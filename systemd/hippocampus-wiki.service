@@ -1,0 +1,22 @@
+# hippocampus LLM-wiki read server — systemd user unit template.
+# Serves wiki pages as HTML (default 0.0.0.0:8087). Edit paths for your install
+# (%h = your home directory; adjust the checkout path if you cloned elsewhere).
+# Install as a *user* unit:
+#   cp systemd/hippocampus-wiki.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload && systemctl --user enable --now hippocampus-wiki
+# Reads PG via sops (hippocampus.enc.yaml); read-only, no DB mutation.
+# Override host/port with WIKI_SERVE_HOST / WIKI_SERVE_PORT in the environment.
+# Operator copies of the real deployed units live in systemd.local/ (untracked).
+[Unit]
+Description=hippocampus LLM-wiki read server (HTML, 0.0.0.0:8087)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/projects/hippocampus-mcp
+ExecStart=%h/projects/hippocampus-mcp/run_wiki_server.sh
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

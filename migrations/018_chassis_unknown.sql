@@ -1,0 +1,22 @@
+-- ⚠️ APPLY: psql -v ON_ERROR_STOP=1 -f migrations/018_chassis_unknown.sql
+--    Do NOT wrap in BEGIN/COMMIT (= ALTER TYPE ADD VALUE has tx restrictions
+--    in some PG versions; psql autocommit is safe).
+--
+-- Phase 7: codex SessionStart hook chassis support.
+--
+-- Adds 'unknown' as a valid agent.chassis_id ENUM value so the new
+-- _detect_chassis() helper can fail-loud (= INSERT 'unknown' into audit
+-- log) instead of misattributing unidentified callers as 'claude-code'.
+--
+-- Background: scripts/recent_topics_inject.py + ghost_context_inject.py
+-- previously hardcoded chassis_id='claude-code'. Phase 7 dynamizes this via
+-- detect_chassis(hook_input) which returns one of {claude-code, codex,
+-- unknown}. The first two are already in the ENUM (= migration 011), the
+-- third is added here.
+--
+-- Rollback: psql -f migrations/018_chassis_unknown_down.sql
+-- ⚠️ Down requires ZERO rows with chassis_id='unknown' (= PG cannot remove
+-- an ENUM value that's in use without value-rewrite migration). The down
+-- file fails loud if any rows reference the value.
+
+ALTER TYPE agent.chassis_id ADD VALUE IF NOT EXISTS 'unknown';
