@@ -1,0 +1,9 @@
+# Project-scoped MCP for hippocampus-mcp (Grok CLI).
+# Grok walks from cwd up to the git root and merges this with ~/.grok/config.toml.
+# Trust the repo once: grok /hooks-trust (or launch with --trust).
+
+[mcp_servers.hippocampus]
+command = "bash"
+args = ["run_server.sh"]
+enabled = true
+startup_timeout_sec = 60

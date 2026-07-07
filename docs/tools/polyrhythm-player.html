@@ -1,0 +1,471 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ポリリズム・プレイヤー — 時間のモードを耳と目で</title>
+<style>
+  :root{
+    --bg:#0d1016; --panel:#141a25; --panel2:#1a2130; --line:#283245;
+    --ink:#e9edf4; --muted:#8b97ab; --faint:#5c6577;
+    --amber:#ffb454;
+    --voiceA:#54cf74; --voiceB:#8b7dff;   /* 地/図で強弱、色は声の identity */
+    --ringfaint:rgba(255,255,255,.10);
+    --dotink:#0d1016;
+    --shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 10px 26px -18px rgba(0,0,0,.7);
+    --mono:ui-monospace,"SF Mono",Menlo,"Cascadia Mono",monospace;
+    --sans:system-ui,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  }
+  @media (prefers-color-scheme: light){
+    :root{--bg:#eef0f3;--panel:#fff;--panel2:#f4f6f9;--line:#dfe4ec;--ink:#1b2230;--muted:#5c6577;--faint:#8a94a4;
+      --amber:#b96e12;--voiceA:#2f8a4d;--voiceB:#5b48d6;--ringfaint:rgba(20,30,50,.12);--dotink:#fff;
+      --shadow:0 1px 0 rgba(255,255,255,.7) inset,0 10px 24px -20px rgba(20,30,60,.4);}
+  }
+  :root[data-theme="dark"]{--bg:#0d1016;--panel:#141a25;--panel2:#1a2130;--line:#283245;--ink:#e9edf4;--muted:#8b97ab;--faint:#5c6577;
+    --amber:#ffb454;--voiceA:#54cf74;--voiceB:#8b7dff;--ringfaint:rgba(255,255,255,.10);--dotink:#0d1016;
+    --shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 10px 26px -18px rgba(0,0,0,.7);}
+  :root[data-theme="light"]{--bg:#eef0f3;--panel:#fff;--panel2:#f4f6f9;--line:#dfe4ec;--ink:#1b2230;--muted:#5c6577;--faint:#8a94a4;
+    --amber:#b96e12;--voiceA:#2f8a4d;--voiceB:#5b48d6;--ringfaint:rgba(20,30,50,.12);--dotink:#fff;
+    --shadow:0 1px 0 rgba(255,255,255,.7) inset,0 10px 24px -20px rgba(20,30,60,.4);}
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.5}
+  .app{max-width:760px;margin:0 auto;padding:14px clamp(12px,2.2vw,22px) 40px}
+  header.bar{display:flex;align-items:baseline;gap:8px 14px;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--line)}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);font-weight:600}
+  h1{font-size:clamp(1.02rem,2.4vw,1.4rem);margin:0;font-weight:660;letter-spacing:-.01em}
+  /* controls-first: reachable without scrolling */
+  .controls{position:sticky;top:0;z-index:5;background:var(--bg);
+    padding:8px 0 8px;border-bottom:1px solid var(--line);margin-bottom:9px}
+  .grp{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:4px 0}
+  .gtitle{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);
+    min-width:66px}
+  .chip{font-family:var(--mono);font-size:12.5px;padding:8px 13px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--muted);cursor:pointer;transition:.13s;min-height:44px;min-width:44px}
+  .chip:hover{border-color:var(--amber);color:var(--ink)}
+  .chip[aria-pressed="true"]{background:var(--amber);border-color:var(--amber);color:var(--dotink);font-weight:600}
+  .chip:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+  .btn{font-family:var(--sans);font-size:14px;font-weight:600;padding:9px 16px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--ink);cursor:pointer;min-height:44px;transition:.13s}
+  .btn:hover{border-color:var(--amber)}
+  .btn:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+  .btn.play[aria-pressed="true"]{background:var(--amber);border-color:var(--amber);color:var(--dotink)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .rangewrap{display:flex;align-items:center;gap:10px;flex:1;min-width:180px}
+  .rangewrap input[type=range]{flex:1;min-width:120px;accent-color:var(--amber);height:28px}
+  .tval{font-family:var(--mono);font-size:12.5px;color:var(--ink);min-width:118px}
+  .tval b{color:var(--amber)}
+  .cap{font-family:var(--mono);font-size:12.5px;color:var(--muted);margin:12px 2px 4px;line-height:1.6}
+  .cap b{color:var(--ink)} .cap .a{color:var(--voiceA);font-weight:700} .cap .b{color:var(--voiceB);font-weight:700}
+  .ringwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:14px;
+    background:var(--panel);box-shadow:var(--shadow);padding:8px;display:flex;justify-content:center}
+  svg.rings{display:block;max-width:100%;height:auto}
+  .legend{display:flex;gap:12px 18px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--muted);margin:12px 2px 0}
+  .legend i{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-2px;margin-right:5px}
+  .foot{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin:14px 2px 0;line-height:1.6}
+  .foot b{color:var(--muted)}
+  /* svg classes */
+  .ring-line{fill:none;stroke:var(--ringfaint)}
+  .ring-line.ground{stroke-width:3.2}
+  .dotA{fill:var(--voiceA)} .dotB{fill:var(--voiceB)}
+  .dot-fig{opacity:.45}
+  .downbeat-ring{fill:none;stroke:var(--amber);stroke-width:2.4}
+  .playhead{stroke:var(--amber);stroke-width:2.6;stroke-linecap:round;opacity:.9}
+  .rlabel{font-family:var(--mono);fill:var(--faint);text-anchor:middle}
+  @media (max-width:560px){
+    .controls{position:static}
+    .gtitle{min-width:0;font-size:9.5px}
+    .cap{font-size:12px}
+    .foot{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="app">
+  <header class="bar">
+    <span class="eyebrow">Polyrhythm Player</span>
+    <h1>ポリリズム・プレイヤー — 時間のモード</h1>
+  </header>
+
+  <section class="controls" aria-label="コントロール">
+    <div class="grp" role="group" aria-label="比率プリセット">
+      <span class="gtitle">比率</span>
+      <button class="chip" data-ratio="3:2" aria-pressed="true">3 : 2</button>
+      <button class="chip" data-ratio="4:3" aria-pressed="false">4 : 3</button>
+      <button class="chip" data-ratio="5:4" aria-pressed="false">5 : 4</button>
+      <button class="chip" data-ratio="5:3" aria-pressed="false">5 : 3</button>
+      <button class="chip" data-ratio="7:4" aria-pressed="false">7 : 4</button>
+    </div>
+    <div class="grp" role="group" aria-label="どちらの層を1拍=地と感じるか">
+      <span class="gtitle">地（拍）</span>
+      <button class="chip" id="groundA" data-ground="A" aria-pressed="true">A を地に</button>
+      <button class="chip" id="groundB" data-ground="B" aria-pressed="false">B を地に</button>
+    </div>
+    <div class="grp">
+      <span class="gtitle">再生</span>
+      <button class="btn play" id="playBtn" aria-pressed="false">▶ 再生</button>
+      <button class="btn" id="stopBtn" disabled>■ 停止</button>
+    </div>
+    <div class="grp">
+      <span class="gtitle">テンポ</span>
+      <div class="rangewrap">
+        <input type="range" id="tempo" min="15" max="90" value="40" step="1"
+               aria-label="テンポ（1分あたりの小節数）">
+        <span class="tval" id="tval"></span>
+      </div>
+    </div>
+  </section>
+
+  <div class="ringwrap">
+    <svg class="rings" id="rings" viewBox="0 0 320 340" width="320" height="340"
+         role="img" aria-label="2声のポリリズムのリング可視化"></svg>
+  </div>
+
+  <p class="cap" id="modeCap"></p>
+
+  <div class="legend">
+    <span><i style="background:var(--voiceA)"></i>声 A（外側リング）</span>
+    <span><i style="background:var(--voiceB)"></i>声 B（内側リング）</span>
+    <span><i style="background:var(--amber)"></i>小節頭（両声が重なる点）</span>
+  </div>
+
+  <p class="foot">
+    <b>時間のトニック。</b> どちらの層を「1拍＝地」と選ぶかで、同じ打点の並びが別の顔になる —
+    地に選んだ層が拍として立ち、もう一方が figure として浮く。これは
+    <b>音階での主音選択・座席選び（mode-atlas）の時間版</b>であり、
+    rhythm-training の「内部パルス＝時間のトニック」と同型。<br>
+    テンポを可聴域（20Hz 超）まで上げるとポリリズムは音程・うなりに化ける —
+    その先は <b>rhythm-generators</b>（リズム＝低周波の音程）へ。
+  </p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* == PURE PLANNER (test-extracted; no DOM/audio deps) =====================
+   * The node unit test (scripts/test_polyrhythm.js) slices this region out of
+   * the served HTML bytes and evals it, so the tested planner IS the shipped
+   * planner (single source of truth, like rhythm_workshop.js dual-target).    */
+
+  // NaN/<=0 guard shared by planner + scheduler. A non-finite barDur silences
+  // the Wilson scheduler (its `nextBarTime < now+AHEAD` compare never fires),
+  // so garbage tempo input must fall back, never poison the accumulator.
+  function safeNum(v, fallback){
+    var b = (typeof v === 'number') ? v : parseFloat(v);
+    if(!isFinite(b) || b <= 0) return fallback;
+    return b;
+  }
+
+  function gcd(a, b){ a=Math.abs(a); b=Math.abs(b); while(b){ var t=b; b=a%b; a=t; } return a; }
+
+  // onset fractions of the bar for a voice of k evenly-spaced pulses: {0,1/k,..}
+  function voiceFractions(k){ var out=[]; for(var i=0;i<k;i++) out.push(i/k); return out; }
+
+  // grid resolution = subdivisions of the bar on which EVERY onset of both
+  // voices lands = lcm(m,n). For coprime m:n that is m*n. This is the period
+  // structure the audible phase-lock repeats on (the LCM cycle).
+  function gridResolution(m, n){ return m * n / gcd(m, n); }
+
+  // planBar(m,n,barDur,pulseLayer) -> flat event list. voice 'A'=m pulses,
+  // 'B'=n pulses. `t` = frac*barDur is the ONLY timing datum; `ground` /
+  // `downbeat` are emphasis flags. Toggling pulseLayer must NOT move any `t`
+  // (asserted): the pulse layer is a perceptual re-reading, not a re-timing.
+  function planBar(m, n, barDur, pulseLayer){
+    var evs = [], i;
+    for(i=0;i<m;i++) evs.push({voice:'A', index:i, frac:i/m, t:(i/m)*barDur,
+                               ground:(pulseLayer==='A'), downbeat:(i===0)});
+    for(i=0;i<n;i++) evs.push({voice:'B', index:i, frac:i/n, t:(i/n)*barDur,
+                               ground:(pulseLayer==='B'), downbeat:(i===0)});
+    return evs;
+  }
+
+  // planRun: nBars laid end to end via a single float accumulator (barStart +=
+  // barDur), exactly as the scheduler advances nextBarTime. Pure so the LCM
+  // period + phase-lock can be asserted as data.
+  function planRun(m, n, barDur, pulseLayer, nBars){
+    var evs = [], barStart = 0, b, k;
+    for(b=0;b<nBars;b++){
+      var bar = planBar(m, n, barDur, pulseLayer);
+      for(k=0;k<bar.length;k++){
+        var e = bar[k];
+        evs.push({bar:b, voice:e.voice, index:e.index, ground:e.ground,
+                  downbeat:e.downbeat, absT: barStart + e.t});
+      }
+      barStart += barDur;
+    }
+    return evs;
+  }
+
+  var PLANNER = { safeNum:safeNum, gcd:gcd, voiceFractions:voiceFractions,
+                  gridResolution:gridResolution, planBar:planBar, planRun:planRun };
+  if(typeof module !== 'undefined' && module.exports){ module.exports = PLANNER; }
+  /* == END PURE PLANNER ==================================================== */
+
+  if(typeof window === 'undefined' || typeof document === 'undefined') return;
+
+  // ---- constants (ported from rhythm_workshop.js Wilson scheduler) ---------
+  var SCHEDULE_AHEAD = 0.12;     // s of audio scheduled ahead of currentTime
+  var TICK_MS = 25;              // Wilson lookahead ticker period
+  var LOOKAHEAD_SEED = 0.06;     // > one ticker period, seam seed
+
+  // ---- app state ----------------------------------------------------------
+  var state = { m:3, n:2, ground:'A', barsPerMin:40 };
+  function barDur(){ return 60 / safeNum(state.barsPerMin, 40); }  // s per bar
+
+  // ---- lazy AudioContext + iOS unlock (rhythm_workshop I5) -----------------
+  var ac = null;
+  function unlock(){
+    if(!ac){ var C = window.AudioContext || window.webkitAudioContext; ac = new C(); }
+    if(ac.state === 'suspended') ac.resume();
+    try {
+      var b = ac.createBuffer(1, 1, 22050);
+      var s = ac.createBufferSource();
+      s.buffer = b; s.connect(ac.destination); s.start(0);
+    } catch(e){ /* older Safari */ }
+    return ac;
+  }
+
+  // ---- global transport (generation-scoped, rhythm_workshop T) -------------
+  var T = { gen:0, ticker:null, master:null, nodes:[], nextBarTime:0,
+            barIndex:0, running:false, rafId:0 };
+
+  // leak-safe node bookkeeping: every osc is tracked on create + untracked on
+  // its own onended so T.nodes stays bounded across minutes of playback.
+  function nodeTrack(node){ T.nodes.push(node); }
+  function nodeUntrack(node){ var i = T.nodes.indexOf(node); if(i>=0) T.nodes.splice(i,1); }
+  function trackedStop(node, when){ try { node.stop(when); } catch(e){} }
+
+  // ---- generation-scoped master stop (rhythm_workshop 5-step ORDER) --------
+  function stopTransport(){
+    T.gen++;                                                     // 1 invalidate
+    if(T.ticker){ clearInterval(T.ticker); T.ticker = null; }    // 2 stop schedule
+    if(T.rafId){ cancelAnimationFrame(T.rafId); T.rafId = 0; }
+    var now = ac ? ac.currentTime : 0;
+    var m = T.master;
+    if(m){
+      try {
+        m.gain.cancelScheduledValues(now);
+        m.gain.setValueAtTime(m.gain.value, now);
+        m.gain.linearRampToValueAtTime(0.0001, now + 0.02);      // 3 ramp down
+      } catch(e){}
+    }
+    var nodes = T.nodes; T.nodes = [];
+    for(var i=0;i<nodes.length;i++) trackedStop(nodes[i], now + 0.025);  // 4 osc.stop AFTER ramp
+    if(m){ setTimeout(function(){ try { m.disconnect(); } catch(e){} }, 60); } // 5 delayed disconnect
+    T.master = null;
+    T.running = false;
+    setPlaying(false);
+    resetPlayhead();
+  }
+
+  // ---- voice synth: two distinct timbres; ground louder --------------------
+  function voice(when, ev){
+    var isA = (ev.voice === 'A');
+    var o = ac.createOscillator();
+    o.type = isA ? 'square' : 'triangle';
+    var freq = isA ? 988 : 523;                 // A high click, B lower body
+    o.frequency.setValueAtTime(freq, when);
+    var g = ac.createGain();
+    // ground layer accented; downbeat (both coincide) is naturally the loudest
+    var peak = ev.ground ? 0.5 : 0.28;
+    if(ev.downbeat) peak = Math.min(0.62, peak + 0.12);
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.linearRampToValueAtTime(peak, when + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + 0.05);
+    o.connect(g); g.connect(T.master);
+    o.onended = function(){ nodeUntrack(o); };   // prune on end (no dead-node leak)
+    o.start(when); trackedStop(o, when + 0.06);
+    nodeTrack(o);
+  }
+
+  // ---- scheduler (Wilson lookahead; live m/n/barDur each tick) -------------
+  function startTransport(){
+    unlock();
+    stopTransport();                             // start stops any prior run
+    var myGen = ++T.gen;
+    T.master = ac.createGain(); T.master.gain.value = 0.9;
+    T.master.connect(ac.destination);
+    T.nodes = [];
+    T.barIndex = 0;
+    T.nextBarTime = ac.currentTime + LOOKAHEAD_SEED;   // seam seed
+    T.running = true;
+    setPlaying(true);
+    T.ticker = setInterval(function(){ tick(myGen); }, TICK_MS);
+    startPlayhead(myGen);
+  }
+
+  function tick(myGen){
+    if(myGen !== T.gen) return;                  // stale generation -> no-op
+    while(T.nextBarTime < ac.currentTime + SCHEDULE_AHEAD){
+      var m = state.m, n = state.n, bd = barDur();   // live each tick (safe)
+      var evs = planBar(m, n, bd, state.ground);
+      for(var k=0;k<evs.length;k++){
+        var e = evs[k];
+        voice(T.nextBarTime + e.t, e);
+      }
+      T.barIndex++;
+      T.nextBarTime += bd;                       // single float accumulator
+    }
+  }
+
+  // ---- ring render (SVG; one source with the audio fractions) --------------
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  var CX = 160, CY = 160, R_A = 128, R_B = 84, DOT_A = 12, DOT_B = 11;
+  var rings = document.getElementById('rings');
+  var dotEls = { A:[], B:[] };
+  var playheadEl = null;
+
+  function svg(name, attrs){
+    var e = document.createElementNS(SVGNS, name);
+    for(var k in attrs) if(attrs.hasOwnProperty(k)) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+  // frac 0 at top (12 o'clock), advancing clockwise.
+  function angleOf(frac){ return -Math.PI/2 + 2*Math.PI*frac; }
+  function px(r, frac){ return CX + r*Math.cos(angleOf(frac)); }
+  function py(r, frac){ return CY + r*Math.sin(angleOf(frac)); }
+
+  function renderRings(){
+    while(rings.firstChild) rings.removeChild(rings.firstChild);
+    dotEls = { A:[], B:[] };
+    var groundA = (state.ground === 'A');
+
+    // ring circles (ground thicker)
+    rings.appendChild(svg('circle', { cx:CX, cy:CY, r:R_A, class:'ring-line' + (groundA?' ground':'') }));
+    rings.appendChild(svg('circle', { cx:CX, cy:CY, r:R_B, class:'ring-line' + (!groundA?' ground':'') }));
+
+    // downbeat marker at 12 o'clock (where both voices coincide)
+    rings.appendChild(svg('circle', { cx:px(R_A, 0), cy:py(R_A, 0), r:DOT_A+5, class:'downbeat-ring' }));
+
+    // voice A dots (m), outer
+    var fa = voiceFractions(state.m);
+    for(var i=0;i<fa.length;i++){
+      var d = svg('circle', { cx:px(R_A, fa[i]).toFixed(2), cy:py(R_A, fa[i]).toFixed(2),
+        r: groundA ? DOT_A : DOT_A-2.5, class:'dotA' + (groundA?'':' dot-fig') });
+      rings.appendChild(d); dotEls.A.push({ el:d, frac:fa[i], baseR:(groundA?DOT_A:DOT_A-2.5) });
+    }
+    // voice B dots (n), inner
+    var fb = voiceFractions(state.n);
+    for(var j=0;j<fb.length;j++){
+      var db = svg('circle', { cx:px(R_B, fb[j]).toFixed(2), cy:py(R_B, fb[j]).toFixed(2),
+        r: !groundA ? DOT_B : DOT_B-2.5, class:'dotB' + (!groundA?'':' dot-fig') });
+      rings.appendChild(db); dotEls.B.push({ el:db, frac:fb[j], baseR:(!groundA?DOT_B:DOT_B-2.5) });
+    }
+
+    // ring labels
+    rings.appendChild(svg('text', { x:CX, y:CY-R_A-8, 'font-size':'12', class:'rlabel' })).textContent =
+      '声A ' + state.m + '拍' + (groundA?'（地）':'（図）');
+    rings.appendChild(svg('text', { x:CX, y:CY+R_A+22, 'font-size':'12', class:'rlabel' })).textContent =
+      '声B ' + state.n + '拍' + (!groundA?'（地）':'（図）');
+
+    // playhead radial line (top = phase 0), rotated in rAF
+    playheadEl = svg('line', { x1:CX, y1:CY, x2:CX, y2:CY-R_A-6, class:'playhead' });
+    rings.appendChild(playheadEl);
+    resetPlayhead();
+  }
+
+  function resetPlayhead(){
+    if(playheadEl) playheadEl.setAttribute('transform', 'rotate(0 '+CX+' '+CY+')');
+    var all = dotEls.A.concat(dotEls.B);
+    for(var i=0;i<all.length;i++){ all[i].el.setAttribute('r', all[i].baseR); all[i].flash = 0; }
+    lastPhase = 0;
+  }
+
+  // ---- latency-correct playhead + dot flash (rhythm_workshop 2.2) ----------
+  var lastPhase = 0;
+  function crossed(frac, last, cur){
+    // did the sweep pass `frac` between last and cur phase (handles wrap)?
+    if(cur >= last) return (frac > last && frac <= cur) || (last === 0 && frac === 0);
+    return (frac > last) || (frac <= cur);       // wrapped past 1.0
+  }
+  function startPlayhead(myGen){
+    function frame(){
+      if(myGen !== T.gen || !T.running) return;
+      var lat = ac.outputLatency || ac.baseLatency || 0;
+      var bd = barDur();
+      var anchor = T.nextBarTime - bd;           // most recent scheduled bar start
+      var phase = ((ac.currentTime - lat) - anchor) / bd;
+      phase = phase - Math.floor(phase);
+      if(playheadEl) playheadEl.setAttribute('transform', 'rotate('+(phase*360).toFixed(2)+' '+CX+' '+CY+')');
+      // flash dots the sweep just crossed, decay the rest
+      var all = dotEls.A.concat(dotEls.B), i;
+      for(i=0;i<all.length;i++){
+        var d = all[i];
+        if(crossed(d.frac, lastPhase, phase)) d.flash = 1;
+        else d.flash = (d.flash || 0) * 0.82;
+        d.el.setAttribute('r', (d.baseR + d.flash * 6).toFixed(2));
+      }
+      lastPhase = phase;
+      T.rafId = requestAnimationFrame(frame);
+    }
+    T.rafId = requestAnimationFrame(frame);
+  }
+
+  // ---- controls / captions -------------------------------------------------
+  function $(id){ return document.getElementById(id); }
+  var RATIOS = { '3:2':[3,2], '4:3':[4,3], '5:4':[5,4], '5:3':[5,3], '7:4':[7,4] };
+
+  function setPlaying(on){
+    var pb = $('playBtn'), sb = $('stopBtn');
+    pb.setAttribute('aria-pressed', on ? 'true' : 'false');
+    pb.textContent = on ? '▶ 再生中' : '▶ 再生';
+    sb.disabled = !on;
+  }
+
+  function updateTval(){
+    var bpm = safeNum(state.barsPerMin, 40);
+    var aBpm = Math.round(bpm * state.m), bBpm = Math.round(bpm * state.n);
+    $('tval').innerHTML = '<b>' + bpm + '</b> 小節/分 ・ A ' + aBpm + ' · B ' + bBpm + ' BPM';
+  }
+
+  function updateCap(){
+    var g = state.ground;
+    var res = gridResolution(state.m, state.n);
+    $('modeCap').innerHTML =
+      '<span class="a">声A</span> は 1 小節を <b>' + state.m + '</b> 等分、' +
+      '<span class="b">声B</span> は <b>' + state.n + '</b> 等分。両者の打点が揃うのは小節頭だけ。' +
+      '最小の共通格子 = lcm(' + state.m + ',' + state.n + ') = <b>' + res + '</b> 分割、' +
+      'この周期でパターンは厳密に反復する。<br>' +
+      'いま <b>' + (g==='A' ? '声A（'+state.m+'拍）' : '声B（'+state.n+'拍）') +
+      '</b> を「地＝1拍」に選択中。もう一方は figure として浮く — ' +
+      '<b>地を切り替えても打点の時刻は 1 つも動かない</b>、感じ方だけが変わる。';
+  }
+
+  function selectRatio(key){
+    var r = RATIOS[key]; if(!r) return;
+    state.m = r[0]; state.n = r[1];
+    document.querySelectorAll('[data-ratio]').forEach(function(b){
+      b.setAttribute('aria-pressed', String(b.dataset.ratio === key));
+    });
+    renderRings(); updateTval(); updateCap();
+  }
+  function selectGround(g){
+    state.ground = g;
+    $('groundA').setAttribute('aria-pressed', String(g === 'A'));
+    $('groundB').setAttribute('aria-pressed', String(g === 'B'));
+    renderRings(); updateCap();
+  }
+
+  document.querySelectorAll('[data-ratio]').forEach(function(b){
+    b.addEventListener('click', function(){ selectRatio(b.dataset.ratio); });
+  });
+  document.querySelectorAll('[data-ground]').forEach(function(b){
+    b.addEventListener('click', function(){ selectGround(b.dataset.ground); });
+  });
+  $('playBtn').addEventListener('click', function(){ startTransport(); });
+  $('stopBtn').addEventListener('click', function(){ stopTransport(); });
+  $('tempo').addEventListener('input', function(){
+    state.barsPerMin = safeNum($('tempo').value, state.barsPerMin);  // live, never touches nextBarTime
+    updateTval();
+  });
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden && T.running) stopTransport();
+  });
+
+  // expose for self-verification (browser gate: window.__pp.T.nodes.length)
+  window.__pp = { T:T, state:state, planBar:planBar, planRun:planRun,
+                  voiceFractions:voiceFractions, gridResolution:gridResolution,
+                  barDur:barDur, unlock:unlock };
+
+  // init
+  renderRings(); updateTval(); updateCap();
+})();
+</script>
