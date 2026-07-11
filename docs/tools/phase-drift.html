@@ -1,0 +1,519 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>同じ 3:2 — 割れば協和(閉じる)、積めばコンマ(閉じない)</title>
+<style>
+  :root{
+    --bg:#0d1016; --panel:#141a25; --panel2:#1a2130; --line:#283245;
+    --ink:#e9edf4; --muted:#8b97ab; --faint:#5c6577;
+    --amber:#ffb454;
+    --voiceA:#54cf74; --voiceB:#8b7dff;   /* A=速い声/上、B=遅い声/下 */
+    --gridfaint:rgba(255,255,255,.10);
+    --dotink:#0d1016;
+    --shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 10px 26px -18px rgba(0,0,0,.7);
+    --mono:ui-monospace,"SF Mono",Menlo,"Cascadia Mono",monospace;
+    --sans:system-ui,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  }
+  @media (prefers-color-scheme: light){
+    :root{--bg:#eef0f3;--panel:#fff;--panel2:#f4f6f9;--line:#dfe4ec;--ink:#1b2230;--muted:#5c6577;--faint:#8a94a4;
+      --amber:#b96e12;--voiceA:#2f8a4d;--voiceB:#5b48d6;--gridfaint:rgba(20,30,50,.12);--dotink:#fff;
+      --shadow:0 1px 0 rgba(255,255,255,.7) inset,0 10px 24px -20px rgba(20,30,60,.4);}
+  }
+  :root[data-theme="dark"]{--bg:#0d1016;--panel:#141a25;--panel2:#1a2130;--line:#283245;--ink:#e9edf4;--muted:#8b97ab;--faint:#5c6577;
+    --amber:#ffb454;--voiceA:#54cf74;--voiceB:#8b7dff;--gridfaint:rgba(255,255,255,.10);--dotink:#0d1016;
+    --shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 10px 26px -18px rgba(0,0,0,.7);}
+  :root[data-theme="light"]{--bg:#eef0f3;--panel:#fff;--panel2:#f4f6f9;--line:#dfe4ec;--ink:#1b2230;--muted:#5c6577;--faint:#8a94a4;
+    --amber:#b96e12;--voiceA:#2f8a4d;--voiceB:#5b48d6;--gridfaint:rgba(20,30,50,.12);--dotink:#fff;
+    --shadow:0 1px 0 rgba(255,255,255,.7) inset,0 10px 24px -20px rgba(20,30,60,.4);}
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.5}
+  .app{max-width:820px;margin:0 auto;padding:14px clamp(12px,2.2vw,22px) 40px}
+  header.bar{display:flex;align-items:baseline;gap:8px 14px;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--line)}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);font-weight:600}
+  h1{font-size:clamp(1.02rem,2.4vw,1.4rem);margin:0;font-weight:660;letter-spacing:-.01em}
+  .hint{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-left:auto;text-align:right}
+  .controls{position:sticky;top:0;z-index:5;background:var(--bg);
+    padding:8px 0 8px;border-bottom:1px solid var(--line);margin-bottom:11px}
+  .grp{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:4px 0}
+  .gtitle{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);min-width:60px}
+  .chip{font-family:var(--mono);font-size:12.5px;padding:8px 13px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--muted);cursor:pointer;transition:.13s;min-height:44px;min-width:44px}
+  .chip:hover{border-color:var(--amber);color:var(--ink)}
+  .chip[aria-pressed="true"]{background:var(--amber);border-color:var(--amber);color:var(--dotink);font-weight:600}
+  .chip:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+  .btn{font-family:var(--sans);font-size:14px;font-weight:600;padding:9px 16px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--ink);cursor:pointer;min-height:44px;transition:.13s}
+  .btn:hover{border-color:var(--amber)}
+  .btn:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+  .btn.play[aria-pressed="true"]{background:var(--amber);border-color:var(--amber);color:var(--dotink)}
+  .btn.mute[aria-pressed="true"]{border-color:var(--amber);color:var(--amber)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .rangewrap{display:flex;align-items:center;gap:10px;flex:1;min-width:180px}
+  .rangewrap input[type=range]{flex:1;min-width:120px;accent-color:var(--amber);height:28px}
+  .tval{font-family:var(--mono);font-size:12.5px;color:var(--ink);min-width:150px}
+  .tval b{color:var(--amber)}
+  .stagewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:14px;
+    background:var(--panel);box-shadow:var(--shadow);padding:8px}
+  svg.stage{display:block;width:100%;height:auto;min-width:520px}
+  .cap{font-family:var(--mono);font-size:12.5px;color:var(--muted);margin:12px 2px 4px;line-height:1.65}
+  .cap b{color:var(--ink)} .cap .a{color:var(--voiceA);font-weight:700} .cap .b{color:var(--voiceB);font-weight:700}
+  .cap .amb{color:var(--amber);font-weight:700}
+  .legend{display:flex;gap:12px 18px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--muted);margin:12px 2px 0}
+  .legend i{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-2px;margin-right:5px}
+  .legend i.sq{border-radius:3px}
+  /* companion pitch panel */
+  .pitch{margin:16px 0 0;border:1px solid var(--line);border-radius:14px;background:var(--panel);box-shadow:var(--shadow);padding:14px 16px}
+  .pitch h2{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin:0 0 10px;font-weight:600}
+  .big{font-family:var(--mono);display:flex;flex-wrap:wrap;gap:6px 20px;align-items:baseline;margin-bottom:10px}
+  .big .k{font-size:10.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em}
+  .big .v{font-size:15px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+  .big .v.amber{color:var(--amber)}
+  .centsbar{position:relative;height:34px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);margin:4px 0 10px;overflow:hidden}
+  .centsbar .tet{position:absolute;top:0;bottom:0;width:2px;background:var(--muted);opacity:.7}
+  .centsbar .pure{position:absolute;top:0;bottom:0;width:2px;background:var(--amber)}
+  .centsbar .gap{position:absolute;top:50%;height:2px;background:var(--amber);opacity:.55;transform:translateY(-50%)}
+  .centsbar .lab{position:absolute;font-family:var(--mono);font-size:9.5px;color:var(--faint);top:3px;white-space:nowrap}
+  .commarow{font-family:var(--mono);font-size:12.5px;color:var(--muted);line-height:1.7}
+  .commarow b{color:var(--ink)} .commarow .amb{color:var(--amber);font-weight:700}
+  .bridge{font-family:var(--mono);font-size:12.5px;color:var(--muted);margin:10px 0 0;padding-top:10px;border-top:1px solid var(--line);line-height:1.7}
+  .bridge b{color:var(--ink)} .bridge .amb{color:var(--amber);font-weight:700}
+  .foot{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin:16px 2px 0;line-height:1.7}
+  .foot b{color:var(--muted)}
+  /* svg classes */
+  .track-line{stroke:var(--gridfaint);stroke-width:2}
+  .dotA{fill:var(--voiceA)} .dotB{fill:var(--voiceB)}
+  .coin{stroke:var(--amber);stroke-width:2;stroke-dasharray:3 4;opacity:.6}
+  .coin-ring{fill:none;stroke:var(--amber);stroke-width:2.4}
+  .drift-fill{fill:var(--amber);opacity:.14}
+  .drift-line{fill:none;stroke:var(--amber);stroke-width:1.8;opacity:.85}
+  .playhead{stroke:var(--amber);stroke-width:2.2;stroke-linecap:round;opacity:.9}
+  .tlabel{font-family:var(--mono);fill:var(--faint);font-size:11px}
+  .tlabel.r{text-anchor:end}
+  @media (max-width:560px){
+    .controls{position:static}
+    .gtitle{min-width:0;font-size:9.5px}
+    .hint{margin-left:0;text-align:left;width:100%}
+    .foot{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="app">
+  <header class="bar">
+    <span class="eyebrow">Divide → close · Stack → comma</span>
+    <h1>同じ 3:2 — 割れば閉じ、積めば閉じない</h1>
+    <span class="hint">分割は最小公倍数で<b>閉じる（協和）</b>・比を積むと<b>閉じない（コンマ）</b></span>
+  </header>
+
+  <section class="controls" aria-label="コントロール">
+    <div class="grp" role="group" aria-label="比率プリセット">
+      <span class="gtitle">比率</span>
+      <button class="chip" data-ratio="3:2" aria-pressed="true">3 : 2</button>
+      <button class="chip" data-ratio="4:3" aria-pressed="false">4 : 3</button>
+      <button class="chip" data-ratio="5:4" aria-pressed="false">5 : 4</button>
+      <button class="chip" data-ratio="5:3" aria-pressed="false">5 : 3</button>
+      <button class="chip" data-ratio="7:4" aria-pressed="false">7 : 4</button>
+    </div>
+    <div class="grp">
+      <span class="gtitle">再生</span>
+      <button class="btn play" id="playBtn" aria-pressed="false">▶ 再生</button>
+      <button class="btn" id="stopBtn" disabled>■ 停止</button>
+      <button class="btn mute" id="muteBtn" aria-pressed="false">🔊 音</button>
+    </div>
+    <div class="grp">
+      <span class="gtitle">テンポ</span>
+      <div class="rangewrap">
+        <input type="range" id="tempo" min="8" max="120" value="26" step="1"
+               aria-label="テンポ（1分あたりのサイクル数）">
+        <span class="tval" id="tval"></span>
+      </div>
+    </div>
+    <div class="grp" role="group" aria-label="速度域">
+      <span class="gtitle">速度域</span>
+      <button class="chip" id="slowBtn" data-slow="1" aria-pressed="true">遅回し（数える）</button>
+      <button class="chip" id="fastBtn" data-slow="0" aria-pressed="false">速回し（融合へ）</button>
+    </div>
+  </section>
+
+  <div class="stagewrap">
+    <svg class="stage" id="stage" viewBox="0 0 680 300" preserveAspectRatio="xMidYMid meet"
+         role="img" aria-label="2本のパルス列の位相のズレと最小公倍数での再収束のタイムライン"></svg>
+  </div>
+
+  <p class="cap" id="driftCap"></p>
+
+  <div class="legend">
+    <span><i class="sq" style="background:var(--voiceA)"></i>トラック A（速い声・上段）</span>
+    <span><i class="sq" style="background:var(--voiceB)"></i>トラック B（遅い声・下段）</span>
+    <span><i style="background:var(--amber)"></i>同時打点＝再収束（LCM）</span>
+  </div>
+
+  <section class="pitch" aria-label="同じ比をピッチとして読む">
+    <h2>同じ比を「ピッチ」として読む</h2>
+    <div class="big">
+      <span><span class="k">音程</span> <span class="v" id="pIv">完全五度</span></span>
+      <span><span class="k">純正</span> <span class="v amber" id="pPure">701.955¢</span></span>
+      <span><span class="k">12平均律</span> <span class="v" id="pTet">700¢</span></span>
+      <span><span class="k">ズレ</span> <span class="v" id="pDev">+1.955¢</span></span>
+    </div>
+    <div class="centsbar" id="centsbar" aria-hidden="true"></div>
+    <p class="commarow" id="commaRow"></p>
+    <p class="bridge" id="bridge"></p>
+  </section>
+
+  <p class="foot">
+    <b>ピッチとリズムは、~20Hz で割れた同じ周波数軸。</b>
+    3:2 は速度側では <b>3対2 のポリリズム</b>、ピッチ側では <b>完全五度</b>。
+    タイムラインで A と B がズレて <b>最小公倍数でぴたりと揃い直す</b>のは、単発の純正比が
+    <b>閉じる＝協和</b>の姿（<span style="color:var(--amber)">コンマではない</span>）。<span style="color:var(--amber)">コンマ</span>は別物 —
+    この比を<b>積んだ</b>ときだけ現れ、右パネルのオーバーシュートが示す。
+    テンポを可聴域（20Hz 超）へ押し上げれば打点は音程に溶ける —
+    その先は <b>octave-circle</b>（ピッチの円）と <b>polyrhythm-player</b>（時間のモード）へ。<br>
+    数値は fabrication ではなく (3/2)^12 / 2^7 等から計算 — ピタゴラスコンマ 23.460¢ = 1.36%。
+  </p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ===== PURE MATH (no DOM/audio) =========================================
+  function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ var t=b; b=a%b; a=t; } return a; }
+  function safeNum(v, fb){ var b=(typeof v==='number')?v:parseFloat(v); return (isFinite(b)&&b>0)?b:fb; }
+
+  // pulse onset fractions of the window for k evenly-spaced pulses (endpoint incl.)
+  function onsets(k){ var o=[]; for(var i=0;i<=k;i++) o.push(i/k); return o; }
+
+  // relative-phase drift envelope. Over the LCM window t∈[0,1] the two tempos
+  // (nA:nB) beat |nA-nB| times; a triangle 0→1→0 per beat = drift-then-relock.
+  // dev=0 at true coincidences, dev=1 at maximum anti-phase.
+  function driftDev(t, nA, nB){
+    var beats = Math.abs(nA - nB);
+    if(beats === 0) return 0;
+    var u = (beats * t) % 1; if(u < 0) u += 1;
+    return u < 0.5 ? 2*u : 2*(1-u);
+  }
+
+  // Pitch reading of the ratio. cents are re-derived, never hardcoded.
+  function pitchOf(p, q, cr){
+    var pure = 1200*Math.log2(p/q);
+    var tet  = Math.round(pure/100)*100;
+    return { pure:pure, tet:tet, dev:pure - tet,
+             commaCents:1200*Math.log2(cr), commaPct:(cr-1)*100 };
+  }
+  // ========================================================================
+
+  if(typeof window === 'undefined' || typeof document === 'undefined') return;
+
+  // ---- scheduler constants (Wilson lookahead, ported from polyrhythm) -----
+  var SCHEDULE_AHEAD = 0.12, TICK_MS = 25, LOOKAHEAD_SEED = 0.06;
+
+  // ---- ratio catalogue ----------------------------------------------------
+  // cr = the >1 comma ratio associated with the interval's non-closure.
+  var RATIOS = {
+    '3:2':{p:3,q:2,iv:'完全五度',ivEn:'P5',comma:'ピタゴラスコンマ',cr:531441/524288,
+           close:'五度×12 が 7 オクターブを <span class="amb">+コンマ</span> で超える'},
+    '4:3':{p:4,q:3,iv:'完全四度',ivEn:'P4',comma:'ピタゴラスコンマ',cr:531441/524288,
+           close:'四度×12 が 5 オクターブに <span class="amb">−コンマ</span> 届かない'},
+    '5:4':{p:5,q:4,iv:'長三度',ivEn:'M3',comma:'シントニックコンマ',cr:81/80,
+           close:'純正長三度は 平均律より <span class="amb">13.7¢ 低い</span>'},
+    '5:3':{p:5,q:3,iv:'長六度',ivEn:'M6',comma:'シントニックコンマ',cr:81/80,
+           close:'純正長六度は 平均律より <span class="amb">15.6¢ 低い</span>'},
+    '7:4':{p:7,q:4,iv:'自然七度',ivEn:'7th',comma:'七限コンマ',cr:64/63,
+           close:'自然七度は 平均律 短七度より <span class="amb">31.2¢ 低い</span>'}
+  };
+
+  // ---- app state ----------------------------------------------------------
+  var state = { key:'3:2', nA:3, nB:2, cpm:26, slow:true };
+  // effective window cycles-per-min (slow域 = ÷2 so pulses are countable)
+  function effCpm(){ return safeNum(state.cpm, 26) * (state.slow ? 1 : 2.4); }
+  function windowDur(){ return 60 / effCpm(); }               // s per LCM window
+
+  // ---- lazy AudioContext + persistent output gain (mute survives stop) -----
+  var ac = null, outGain = null, muted = false;
+  function unlock(){
+    if(!ac){ var C = window.AudioContext || window.webkitAudioContext; ac = new C();
+             outGain = ac.createGain(); outGain.gain.value = muted?0:0.9; outGain.connect(ac.destination); }
+    if(ac.state === 'suspended') ac.resume();
+    try { var b=ac.createBuffer(1,1,22050), s=ac.createBufferSource(); s.buffer=b; s.connect(ac.destination); s.start(0); }
+    catch(e){}
+    return ac;
+  }
+
+  // ---- generation-scoped transport (leak-safe, from polyrhythm) -----------
+  var T = { gen:0, ticker:null, master:null, nodes:[], nextWinTime:0, running:false, rafId:0 };
+  function nodeUntrack(n){ var i=T.nodes.indexOf(n); if(i>=0) T.nodes.splice(i,1); }
+  function trackedStop(n,w){ try{ n.stop(w); }catch(e){} }
+
+  function stopTransport(){
+    T.gen++;
+    if(T.ticker){ clearInterval(T.ticker); T.ticker=null; }
+    if(T.rafId){ cancelAnimationFrame(T.rafId); T.rafId=0; }
+    var now = ac ? ac.currentTime : 0, m = T.master;
+    if(m){ try{ m.gain.cancelScheduledValues(now); m.gain.setValueAtTime(m.gain.value,now);
+                m.gain.linearRampToValueAtTime(0.0001, now+0.02); }catch(e){} }
+    var nodes = T.nodes; T.nodes = [];
+    for(var i=0;i<nodes.length;i++) trackedStop(nodes[i], now+0.025);
+    if(m){ setTimeout(function(){ try{ m.disconnect(); }catch(e){} }, 60); }
+    T.master = null; T.running = false; setPlaying(false); resetPlayhead();
+  }
+
+  // ---- voice synth: A = higher (fast train), B = lower; ratio = the interval
+  var BASE = 440;                                       // B pitch; A = BASE*p/q
+  function click(when, isA, downbeat){
+    var o = ac.createOscillator();
+    o.type = isA ? 'square' : 'triangle';
+    o.frequency.setValueAtTime(isA ? BASE*state.nA/state.nB : BASE, when);
+    var g = ac.createGain();
+    var peak = isA ? 0.34 : 0.30;
+    if(downbeat) peak = Math.min(0.6, peak + 0.16);     // coincidence accents
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.linearRampToValueAtTime(peak, when+0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, when+0.055);
+    o.connect(g); g.connect(T.master);
+    o.onended = function(){ nodeUntrack(o); };
+    o.start(when); trackedStop(o, when+0.07); T.nodes.push(o);
+  }
+
+  function startTransport(){
+    unlock(); stopTransport();
+    var myGen = ++T.gen;
+    T.master = ac.createGain(); T.master.gain.value = 1; T.master.connect(outGain);
+    T.nodes = [];
+    T.nextWinTime = ac.currentTime + LOOKAHEAD_SEED;
+    T.running = true; setPlaying(true);
+    T.ticker = setInterval(function(){ tick(myGen); }, TICK_MS);
+    startPlayhead(myGen);
+  }
+
+  function tick(myGen){
+    if(myGen !== T.gen) return;
+    while(T.nextWinTime < ac.currentTime + SCHEDULE_AHEAD){
+      var nA = state.nA, nB = state.nB, D = windowDur();  // live each tick
+      for(var i=0;i<nA;i++) click(T.nextWinTime + (i/nA)*D, true,  i===0);
+      for(var j=1;j<nB;j++) click(T.nextWinTime + (j/nB)*D, false, false); // j=0 = downbeat (A covers)
+      T.nextWinTime += D;
+    }
+  }
+
+  // ---- SVG timeline render ------------------------------------------------
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  var VW = 680, ML = 54, MR = 22, PW = VW - ML - MR;     // plot geometry
+  var YA = 66, YB = 138, DOT = 8;                        // track rows
+  var YCURVE_TOP = 186, YCURVE_BASE = 274, AMP = YCURVE_BASE - YCURVE_TOP;
+  var stage = document.getElementById('stage');
+  var dotEls = { A:[], B:[] }, playheadEl = null;
+
+  function svg(name, attrs){
+    var e = document.createElementNS(SVGNS, name);
+    for(var k in attrs) if(attrs.hasOwnProperty(k)) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+  function X(frac){ return ML + frac*PW; }
+
+  function renderStage(){
+    while(stage.firstChild) stage.removeChild(stage.firstChild);
+    dotEls = { A:[], B:[] };
+    var nA = state.nA, nB = state.nB;
+
+    // row labels
+    var la = svg('text', { x:ML-8, y:YA+4, class:'tlabel r' }); la.textContent = '声A '+nA; stage.appendChild(la);
+    var lb = svg('text', { x:ML-8, y:YB+4, class:'tlabel r' }); lb.textContent = '声B '+nB; stage.appendChild(lb);
+    var lc = svg('text', { x:ML-8, y:YCURVE_TOP-6, class:'tlabel r' }); lc.textContent = 'ズレ'; stage.appendChild(lc);
+
+    // track base lines
+    stage.appendChild(svg('line', { x1:ML, y1:YA, x2:ML+PW, y2:YA, class:'track-line' }));
+    stage.appendChild(svg('line', { x1:ML, y1:YB, x2:ML+PW, y2:YB, class:'track-line' }));
+
+    // true coincidence verticals (coprime ⇒ only window ends) + amber rings
+    [0,1].forEach(function(f){
+      stage.appendChild(svg('line', { x1:X(f), y1:YA-18, x2:X(f), y2:YCURVE_BASE+6, class:'coin' }));
+      stage.appendChild(svg('circle', { cx:X(f), cy:YA, r:DOT+5, class:'coin-ring' }));
+      stage.appendChild(svg('circle', { cx:X(f), cy:YB, r:DOT+5, class:'coin-ring' }));
+    });
+
+    // pulse dots
+    var oA = onsets(nA);
+    for(var i=0;i<oA.length;i++){
+      var d = svg('circle', { cx:X(oA[i]).toFixed(2), cy:YA, r:DOT, class:'dotA' });
+      stage.appendChild(d); dotEls.A.push({ el:d, frac:oA[i] });
+    }
+    var oB = onsets(nB);
+    for(var j=0;j<oB.length;j++){
+      var db = svg('circle', { cx:X(oB[j]).toFixed(2), cy:YB, r:DOT, class:'dotB' });
+      stage.appendChild(db); dotEls.B.push({ el:db, frac:oB[j] });
+    }
+
+    // drift envelope: fill + line
+    var N = 240, pts = [];
+    for(var s=0;s<=N;s++){
+      var t = s/N, dev = driftDev(t, nA, nB);
+      pts.push([X(t), YCURVE_BASE - dev*AMP]);
+    }
+    var dLine = 'M' + pts.map(function(p){ return p[0].toFixed(1)+','+p[1].toFixed(1); }).join(' L');
+    var dFill = 'M'+X(0).toFixed(1)+','+YCURVE_BASE+' L' +
+                pts.map(function(p){ return p[0].toFixed(1)+','+p[1].toFixed(1); }).join(' L') +
+                ' L'+X(1).toFixed(1)+','+YCURVE_BASE+' Z';
+    stage.appendChild(svg('path', { d:dFill, class:'drift-fill' }));
+    stage.appendChild(svg('path', { d:dLine, class:'drift-line' }));
+
+    // window bracket labels
+    var t0 = svg('text', { x:X(0), y:YCURVE_BASE+18, class:'tlabel', 'text-anchor':'middle' });
+    t0.textContent = '揃う'; stage.appendChild(t0);
+    var t1 = svg('text', { x:X(1), y:YCURVE_BASE+18, class:'tlabel', 'text-anchor':'end' });
+    t1.textContent = '再収束 (LCM)'; stage.appendChild(t1);
+
+    // playhead
+    playheadEl = svg('line', { x1:X(0), y1:YA-22, x2:X(0), y2:YCURVE_BASE+6, class:'playhead' });
+    stage.appendChild(playheadEl);
+    resetPlayhead();
+  }
+
+  function resetPlayhead(){
+    if(playheadEl){ playheadEl.setAttribute('x1', X(0)); playheadEl.setAttribute('x2', X(0)); }
+    var all = dotEls.A.concat(dotEls.B);
+    for(var i=0;i<all.length;i++){ all[i].el.setAttribute('r', DOT); all[i].flash = 0; }
+    lastPhase = 0;
+  }
+
+  // ---- latency-correct playhead sweep + dot flash -------------------------
+  var lastPhase = 0;
+  function crossed(frac,last,cur){
+    if(cur >= last) return (frac > last && frac <= cur) || (last===0 && frac===0);
+    return (frac > last) || (frac <= cur);
+  }
+  function startPlayhead(myGen){
+    function frame(){
+      if(myGen !== T.gen || !T.running) return;
+      var lat = ac.outputLatency || ac.baseLatency || 0;
+      var D = windowDur(), anchor = T.nextWinTime - D;
+      var phase = ((ac.currentTime - lat) - anchor) / D;
+      phase = phase - Math.floor(phase);
+      var x = X(phase);
+      if(playheadEl){ playheadEl.setAttribute('x1', x.toFixed(2)); playheadEl.setAttribute('x2', x.toFixed(2)); }
+      var all = dotEls.A.concat(dotEls.B), i;
+      for(i=0;i<all.length;i++){
+        var d = all[i];
+        if(crossed(d.frac, lastPhase, phase)) d.flash = 1;
+        else d.flash = (d.flash || 0) * 0.8;
+        d.el.setAttribute('r', (DOT + d.flash*5).toFixed(2));
+      }
+      lastPhase = phase;
+      T.rafId = requestAnimationFrame(frame);
+    }
+    T.rafId = requestAnimationFrame(frame);
+  }
+
+  // ---- captions + companion pitch panel -----------------------------------
+  function $(id){ return document.getElementById(id); }
+  function fmt(x,n){ return (x>=0?'+':'') + x.toFixed(n); }
+
+  function setPlaying(on){
+    var pb=$('playBtn'), sb=$('stopBtn');
+    pb.setAttribute('aria-pressed', on?'true':'false');
+    pb.textContent = on ? '▶ 再生中' : '▶ 再生';
+    sb.disabled = !on;
+  }
+  function updateTval(){
+    var cpm = safeNum(state.cpm,26);
+    var eff = effCpm();
+    var aBpm = Math.round(eff*state.nA), bBpm = Math.round(eff*state.nB);
+    $('tval').innerHTML = '<b>'+cpm+'</b> 周/分 ・ A '+aBpm+' · B '+bBpm+' BPM';
+  }
+  function updateDriftCap(){
+    var nA=state.nA, nB=state.nB, L = nA*nB/gcd(nA,nB), beats = Math.abs(nA-nB);
+    $('driftCap').innerHTML =
+      '<span class="a">声A</span> は窓を <b>'+nA+'</b> 等分、<span class="b">声B</span> は <b>'+nB+'</b> 等分。'+
+      '打点が<span class="amb">真に重なるのは窓の両端だけ</span> — '+
+      'A が '+nA+' 周、B が '+nB+' 周まわって位相がぴたりと戻る（周期の最小公倍数）。'+
+      '途中でズレは膨らんで <b>'+beats+' 回</b>の山を描き、端で 0 に戻って<b>閉じる</b>。'+
+      '単発の純正比はこう必ず揃い直す＝<span class="amb">協和</span>（LCM が短いほど掴みやすい）。コンマは別物、比を積んだときの話。';
+  }
+  function updateCentsbar(pn){
+    // map ±60¢ deviation window around the 12-TET degree
+    var span = 60, mid = 0.5;
+    function pos(devC){ return Math.max(2, Math.min(98, mid*100 + (devC/span)*50)); }
+    var bar = $('centsbar');
+    bar.innerHTML = '';
+    var tet = document.createElement('div'); tet.className='tet'; tet.style.left = pos(0)+'%'; bar.appendChild(tet);
+    var tl = document.createElement('div'); tl.className='lab'; tl.style.left='calc('+pos(0)+'% + 4px)'; tl.textContent='平均律'; bar.appendChild(tl);
+    var pu = document.createElement('div'); pu.className='pure'; pu.style.left = pos(pn.dev)+'%'; bar.appendChild(pu);
+    var pl = document.createElement('div'); pl.className='lab'; pl.style.left='calc('+pos(pn.dev)+'% + 4px)'; pl.style.top='19px'; pl.style.color='var(--amber)'; pl.textContent='純正 '+fmt(pn.dev,1)+'¢'; bar.appendChild(pl);
+    var lo = Math.min(pos(0), pos(pn.dev)), hi = Math.max(pos(0), pos(pn.dev));
+    var gp = document.createElement('div'); gp.className='gap'; gp.style.left=lo+'%'; gp.style.width=(hi-lo)+'%'; bar.appendChild(gp);
+  }
+  function updatePitch(){
+    var r = RATIOS[state.key], pn = pitchOf(r.p, r.q, r.cr);
+    $('pIv').textContent  = r.iv + ' ('+r.ivEn+')';
+    $('pPure').textContent = pn.pure.toFixed(3)+'¢';
+    $('pTet').textContent  = pn.tet+'¢';
+    $('pDev').textContent  = fmt(pn.dev,3)+'¢';
+    updateCentsbar(pn);
+    $('commaRow').innerHTML =
+      '<b>'+r.comma+'</b> = <span class="amb">'+pn.commaCents.toFixed(3)+'¢</span> '+
+      '（比 '+r.cr.toFixed(6)+' = '+fmt(pn.commaPct,3)+'%）。 '+r.close+'。';
+    var bridge;
+    if(state.key === '3:2'){
+      bridge = '<b>速度側でも同じ数。</b> テンポを 3:2 で <b>12 回</b>積み上げると '+
+        '(3/2)<sup>12</sup> = 129.746 で、<b>7 回</b>の倍化 (2<sup>7</sup>=128) を '+
+        '<span class="amb">+1.364%</span> 超える — ピッチ側のピタゴラスコンマと<b>同一の非閉包</b>。';
+    } else if(state.key === '4:3'){
+      bridge = '<b>速度側でも同じ数。</b> テンポを 4:3 で 12 回積むと 5 回の倍化に '+
+        '<span class="amb">−1.35%</span> 届かない — 3:2 と同じピタゴラスコンマの裏側。';
+    } else {
+      bridge = '<b>速度側でも同じ非閉包。</b> この比を平均律の格子へ畳み込むと '+
+        '<span class="amb">'+pitchOf(RATIOS[state.key].p,RATIOS[state.key].q,RATIOS[state.key].cr).commaCents.toFixed(2)+
+        '¢ = '+fmt(pn.commaPct,3)+'%</span> の '+r.comma+'が残る。コンマは比を<b>積んだ</b>ときの残余 — 左のタイムライン（単発は閉じる）とは別の現象。';
+    }
+    $('bridge').innerHTML = bridge;
+  }
+
+  // ---- control wiring -----------------------------------------------------
+  function selectRatio(key){
+    var r = RATIOS[key]; if(!r) return;
+    var g = gcd(r.p, r.q);
+    state.key = key; state.nA = r.p/g; state.nB = r.q/g;
+    document.querySelectorAll('[data-ratio]').forEach(function(b){
+      b.setAttribute('aria-pressed', String(b.dataset.ratio === key));
+    });
+    renderStage(); updateTval(); updateDriftCap(); updatePitch();
+  }
+  function selectSlow(on){
+    state.slow = on;
+    $('slowBtn').setAttribute('aria-pressed', String(on));
+    $('fastBtn').setAttribute('aria-pressed', String(!on));
+    updateTval();
+  }
+  function setMute(on){
+    muted = on;
+    $('muteBtn').setAttribute('aria-pressed', String(on));
+    $('muteBtn').textContent = on ? '🔇 消音' : '🔊 音';
+    if(outGain && ac){
+      outGain.gain.cancelScheduledValues(ac.currentTime);
+      outGain.gain.setTargetAtTime(on?0:0.9, ac.currentTime, 0.01);
+    }
+  }
+
+  document.querySelectorAll('[data-ratio]').forEach(function(b){
+    b.addEventListener('click', function(){ selectRatio(b.dataset.ratio); });
+  });
+  $('slowBtn').addEventListener('click', function(){ selectSlow(true); });
+  $('fastBtn').addEventListener('click', function(){ selectSlow(false); });
+  $('playBtn').addEventListener('click', function(){ startTransport(); });
+  $('stopBtn').addEventListener('click', function(){ stopTransport(); });
+  $('muteBtn').addEventListener('click', function(){ setMute(!muted); });
+  $('tempo').addEventListener('input', function(){
+    state.cpm = safeNum($('tempo').value, state.cpm); updateTval();
+  });
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden && T.running) stopTransport();
+  });
+
+  // expose for self-verification
+  window.__pd = { T:T, state:state, driftDev:driftDev, pitchOf:pitchOf, onsets:onsets,
+                  gcd:gcd, windowDur:windowDur, RATIOS:RATIOS };
+
+  // init
+  selectRatio('3:2'); updateTval();
+})();
+</script>

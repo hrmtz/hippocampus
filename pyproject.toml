@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hippocampus-mcp"
+version = "0.2.0.dev0"
+description = "Personal memory MCP server — multi-platform conversation ingest into PostgreSQL+pgvector, searched from any agent session"
+readme = "README.md"
+requires-python = ">=3.11"
+# Base install stays light: no torch/FlagEmbedding (plan §3.1 dependency split)
+dependencies = [
+    "mcp[cli]>=1.0.0",
+    "psycopg2-binary>=2.9",
+    "pgvector>=0.3",
+    "numpy>=1.24",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+bge-local = ["FlagEmbedding>=1.2", "torch>=2.0"]
+web = ["fastapi>=0.111", "uvicorn>=0.30", "slowapi>=0.1.9"]
+sse = ["uvicorn>=0.30", "starlette"]
+# claude.ai connector: streamable HTTP + OAuth AS. Floor pinned to the SDK that
+# ships FastMCP.streamable_http_app + mcp.server.auth (OAuthAuthorizationServerProvider,
+# PKCE-S256, DCR toggle). >=1.0.0 predates all of them — see design
+# docs/designs/claude-ai-connector-oauth.md S0 / r1-mcpint-1.
+connector = ["mcp[cli]>=1.27", "uvicorn>=0.30", "starlette", "slowapi>=0.1.9"]
+scoring = ["anthropic>=0.40"]
+
+[project.scripts]
+hippocampus = "hippocampus.cli:main"
+hippocampus-mcp = "hippocampus.server:main"
+hippocampus-mcp-connector = "hippocampus.connector:main"
+hippocampus-mcp-connector-oauth = "hippocampus.connector:main_oauth"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+# migrations/ is symlinked into the package (src/hippocampus/migrations ->
+# ../../migrations) so installed (non-editable) copies carry the SQL +
+# manifest; hippocampus.migrate resolves the packaged path first.
+hippocampus = ["migrations/*.sql", "migrations/manifest.yaml",
+               "wiki_autonumber.lua"]

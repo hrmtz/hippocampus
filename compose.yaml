@@ -1,0 +1,54 @@
+# Canonical single-host deployment (epic #43 Phase 3).
+#
+#   docker compose up -d                 # postgres only
+#   docker compose --profile bge up -d   # + local BGE-M3 embed server
+#
+# DDL is exclusively `hippocampus migrate` — migrations/ is NEVER mounted
+# into docker-entrypoint-initdb.d (lexicographic initdb execution would run
+# *_down.sql rollback files mid-sequence; that is why the legacy
+# docker-compose.yml was retired).
+#
+# Defaults bind to localhost only. Set the passwords/token in .env
+# (compose reads it automatically; see .env.example).
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    ports:
+      # Host port is configurable: 5432 is often taken by a host postgres
+      # (or, under WSL2, by a Windows-side listener invisible to Linux ss).
+      - "127.0.0.1:${HIPPOCAMPUS_PG_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: hippocampus
+      POSTGRES_PASSWORD: ${PG_PASSWORD:?set PG_PASSWORD in .env}
+      POSTGRES_DB: hippocampus
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # Optional local embed server (~6GB RAM; downloads BAAI/bge-m3 on first run).
+  # Cloud-less semantic search: set BGE_EMBED_URL=http://localhost:8086 in .env.
+  bge:
+    profiles: ["bge"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.bge
+    ports:
+      - "127.0.0.1:${BGE_ONDEMAND_PORT:-8086}:8086"
+    environment:
+      # :- not :? — a hard-required interpolation here breaks `docker compose
+      # up postgres` for users who never enable this profile. An empty token
+      # fails closed at request time (HTTP 500 from the server) and
+      # `hippocampus doctor` reports it.
+      BGE_EMBED_TOKEN: ${BGE_EMBED_TOKEN:-}
+      BGE_EMBED_PORT: "8086"
+      BGE_EMBED_HOST: "0.0.0.0"
+      BGE_ONDEMAND_IDLE_SECONDS: ${BGE_ONDEMAND_IDLE_SECONDS:-}
+      HF_HOME: /hf_cache
+    volumes:
+      - hf_cache:/hf_cache
+    restart: ${BGE_RESTART_POLICY:-unless-stopped}
+
+volumes:
+  pg_data:
+  hf_cache:

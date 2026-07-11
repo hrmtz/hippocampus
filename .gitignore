@@ -1,0 +1,37 @@
+*.egg-info/
+*.pyc
+.env
+.venv/
+__pycache__/
+dist/
+models/
+secrets/
+secrets/gcp_vision.json
+# Phase -1 repo hygiene (epic #43): no data corpora / DBs / live secrets in git
+data/
+*.db
+*.sqlite
+*.sqlite3
+accounts.db
+secrets.enc.yaml
+exports/
+logs/
+
+# dual-magi-review meta-state (= per SKILL.md, gitignore recommended)
+docs/.dual-magi/
+docs/designs/.*/*.lock
+
+# ghost layer local test fixtures
+*_DELETEME.md
+migrations/.dual-magi/
+formation/
+
+# operator-local migration seed data (epic #43 Phase 3, r1-privacy-5)
+migrations.local/
+
+# epic #43 Phase 4: operator-local copies of topology-bearing artifacts
+# (r1-privacy-4, r3-privacy-3/-4) — tracked counterparts are genericized
+CLAUDE.local.md
+systemd.local/
+docs/operator/
+.venv-score/

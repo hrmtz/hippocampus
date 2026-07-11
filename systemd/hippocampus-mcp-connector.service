@@ -1,0 +1,24 @@
+# hippocampus claude.ai connector — streamable HTTP + OAuth AS. systemd user unit.
+# Install (on the deploy host, after `pip install -e .[connector]`):
+#   cp systemd/hippocampus-mcp-connector.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now hippocampus-mcp-connector
+# Set the public hostname via a drop-in (keeps it out of the tracked unit):
+#   systemctl --user edit hippocampus-mcp-connector
+#   [Service]
+#   Environment=HIPPOCAMPUS_CONNECTOR_PUBLIC_HOST=mcp.example.com
+# The static claude.ai client id/secret come from the sops file via the wrapper.
+# Operator copies of the real deployed units live in systemd.local/ (untracked).
+[Unit]
+Description=hippocampus claude.ai connector (streamable HTTP + OAuth)
+After=network.target hippocampus-embed.service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/projects/hippocampus-mcp
+ExecStart=%h/projects/hippocampus-mcp/run_connector_oauth.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

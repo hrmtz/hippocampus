@@ -1,0 +1,164 @@
+# migrations/manifest.yaml — single source of truth for migration order
+# (epic #43 Phase 3, plan §3.6).
+#
+# A naive glob of migrations/*.sql is impossible here: *_down.sql files are
+# interleaved, numeric prefixes are duplicated (003 ×2, 004 ×2, 018 ×2,
+# 021 ×2), 009b is intentionally deferred, and several files must run
+# outside a transaction. THIS LIST is the order. *_down.sql files are never
+# listed.
+#
+# Fields per entry:
+#   file:  filename relative to migrations/
+#   tier:  core     — applied by default (`hippocampus migrate`)
+#          library  — applied only with --with-library
+#          optional — applied only with --include-optional
+#                     (009b HNSW: defer until agent.ghost_memories holds
+#                      1000+ rows for the target embed_model)
+#   no_tx: true     — file contains CREATE/DROP INDEX CONCURRENTLY or
+#                     ALTER TYPE .. ADD VALUE and must NOT be wrapped in a
+#                     transaction (runner uses psql autocommit, fresh
+#                     session per file)
+#          false    — file is transaction-safe (runner uses psql -1)
+#   note:  one-line context where non-obvious (plain text, no colons)
+#
+# Parsing contract (so the runner needs no pyyaml): this file is plain YAML
+# restricted to a line-based subset. Accepted lines, after stripping
+# leading/trailing whitespace:
+#   - blank lines and lines starting with '#'  -> ignored
+#   - 'migrations:'                            -> ignored (list header)
+#   - '- file: <filename>'                     -> starts a new entry
+#   - 'tier: core|library|optional'            -> field of current entry
+#   - 'no_tx: true|false'                      -> field of current entry
+#   - 'note: <free text>'                      -> field of current entry
+# Values must not need YAML quoting (no leading/trailing quotes, no ':' in
+# note text). Anything else is a parse error. hippocampus.migrate enforces
+# this; scripts/test_migrate_scanner.py cross-checks the list against the
+# actual migrations/ directory and a no-tx SQL scanner.
+
+migrations:
+  - file: 001_personal_schema.sql
+    tier: core
+    no_tx: false
+    note: creates extensions vector + pg_trgm and schema personal
+  - file: 002_topic_clusters.sql
+    tier: core
+    no_tx: false
+  - file: 003_conversation_scoring_columns.sql
+    tier: core
+    no_tx: false
+  - file: 003_library_schema.sql
+    tier: library
+    no_tx: false
+    note: creates schema library (duplicate 003 prefix is historical)
+  - file: 004_library_books_schema.sql
+    tier: library
+    no_tx: false
+    note: requires 003_library_schema
+  - file: 005_last_file_size.sql
+    tier: core
+    no_tx: false
+  - file: 006_content_trgm_index.sql
+    tier: core
+    no_tx: true
+    note: CREATE INDEX CONCURRENTLY (gin trgm on personal.messages)
+  - file: 007_conversation_rollup_embed.sql
+    tier: core
+    no_tx: true
+    note: CREATE INDEX CONCURRENTLY (hnsw on conv_dense)
+  - file: 008_conversation_segments.sql
+    tier: core
+    no_tx: true
+    note: CREATE INDEX CONCURRENTLY (hnsw on seg_dense)
+  - file: 009_agent_ghost_layer.sql
+    tier: core
+    no_tx: false
+    note: self-wrapped BEGIN/COMMIT, creates cluster-global agent_* roles (needs CREATEROLE), mentions ALTER TYPE ADD VALUE only in a comment
+  - file: 009b_ghost_hnsw.sql
+    tier: optional
+    no_tx: true
+    note: CREATE INDEX CONCURRENTLY, deferred until ghost_memories 1000+ rows
+  - file: 010_ghost_purge_tombstone.sql
+    tier: core
+    no_tx: false
+  - file: 011_chassis_id_codex.sql
+    tier: core
+    no_tx: true
+    note: ALTER TYPE agent.chassis_id ADD VALUE
+  - file: 012_heartbeat_include_partial.sql
+    tier: core
+    no_tx: false
+  - file: 013_conversation_project.sql
+    tier: core
+    no_tx: true
+    note: CREATE INDEX CONCURRENTLY + DO-block INVALID-index check
+  - file: 014_inject_governance.sql
+    tier: core
+    no_tx: true
+    note: DROP+CREATE INDEX CONCURRENTLY, denylist seed is empty (operator seed in migrations.local/)
+  - file: 015_inject_audit_role.sql
+    tier: core
+    no_tx: false
+    note: requires 009 roles + 013/014
+  - file: 016_inject_lifecycle.sql
+    tier: core
+    no_tx: false
+    note: requires 013-015 + agent_purge_admin from 009
+  - file: 017_post_review_hardening.sql
+    tier: core
+    no_tx: false
+    note: requires 013-016
+  - file: 018_chassis_unknown.sql
+    tier: core
+    no_tx: true
+    note: ALTER TYPE agent.chassis_id ADD VALUE
+  - file: 018_purge_reason_tombstone.sql
+    tier: core
+    no_tx: false
+    note: requires 010 + 016 + 017 (duplicate 018 prefix is historical)
+  - file: 019_dub_action_embed_failure_classes.sql
+    tier: core
+    no_tx: true
+    note: ALTER TYPE agent.dub_action ADD VALUE x2
+  - file: 020_ghost_hybrid_ranking.sql
+    tier: core
+    no_tx: false
+  - file: 021_ghost_rrf_ranking.sql
+    tier: core
+    no_tx: false
+    note: requires 020, must precede 021_phase_d (duplicate 021 prefix is historical)
+  - file: 021_phase_d_feature_flag.sql
+    tier: core
+    no_tx: false
+    note: requires feature_flags table from 014
+  - file: 022_library_content_classification.sql
+    tier: library
+    no_tx: false
+    note: requires 003_library_schema
+  - file: 023_extracted_facts.sql
+    tier: core
+    no_tx: true
+    note: distilled facts layer for high-signal search (HNSW CONCURRENTLY)
+  - file: 024_ghost_dub_action_allowlist.sql
+    tier: core
+    no_tx: true
+    note: add skipped_not_allowlisted to ghost_dub_action ENUM (dual-signal gate, gh #49)
+  - file: 025_memory_link_graph.sql
+    tier: core
+    no_tx: false
+    note: memory link-graph (source_stem + memory_edges + ghost_is_visible + expand_ghost_neighbors); requires 009 roles + 020/021
+  - file: 026_diary.sql
+    tier: core
+    no_tx: false
+    note: daily diary fast layer (one candid first-person entry per JST day, store-only)
+  - file: 027_wiki.sql
+    tier: core
+    no_tx: false
+    note: llm-wiki layer (wiki_pages body_md SoT + derived wiki_claims + append-only merge_log + staging + agent_wiki_writer role + v_wiki_inject_safe); requires 009 roles + 014 feature_flags
+  - file: 028_chassis_id_grok.sql
+    tier: core
+    no_tx: true
+    note: ALTER TYPE agent.chassis_id ADD VALUE
+  - file: 029_diary_audit.sql
+    tier: core
+    no_tx: false
+    note: diary grounding auditor (gh #64) — diary.source_conv_ids emit + diary_audit verdict log + kill-switch flag; requires 026 diary + 014 feature_flags

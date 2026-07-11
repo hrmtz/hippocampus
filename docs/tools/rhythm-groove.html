@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>リズムの軸 — 同じ和音、違うグルーヴ</title>
+</head><body>
+<style>
+  :root{
+    --bg:#0d1016; --panel:#141a25; --panel2:#1a2130; --line:#283245;
+    --ink:#e9edf4; --muted:#8b97ab; --faint:#5c6577;
+    --amber:#ffb454; --bass:#54cf74; --mel:#8b7dff; --dotink:#0d1016;
+    --shadow:0 1px 0 rgba(255,255,255,.04) inset,0 10px 26px -18px rgba(0,0,0,.7);
+    --mono:ui-monospace,"SF Mono",Menlo,"Cascadia Mono",monospace;
+    --sans:system-ui,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  }
+  @media (prefers-color-scheme:light){
+    :root{--bg:#eef0f3;--panel:#fff;--panel2:#f4f6f9;--line:#dfe4ec;--ink:#1b2230;--muted:#5c6577;--faint:#8a94a4;
+      --amber:#b96e12;--bass:#2f8a4d;--mel:#5b48d6;--dotink:#fff;
+      --shadow:0 1px 0 rgba(255,255,255,.7) inset,0 10px 24px -20px rgba(20,30,60,.4);}
+  }
+  :root[data-theme="dark"]{--bg:#0d1016;--panel:#141a25;--panel2:#1a2130;--line:#283245;--ink:#e9edf4;--muted:#8b97ab;--faint:#5c6577;
+    --amber:#ffb454;--bass:#54cf74;--mel:#8b7dff;--dotink:#0d1016;
+    --shadow:0 1px 0 rgba(255,255,255,.04) inset,0 10px 26px -18px rgba(0,0,0,.7);}
+  :root[data-theme="light"]{--bg:#eef0f3;--panel:#fff;--panel2:#f4f6f9;--line:#dfe4ec;--ink:#1b2230;--muted:#5c6577;--faint:#8a94a4;
+    --amber:#b96e12;--bass:#2f8a4d;--mel:#5b48d6;--dotink:#fff;
+    --shadow:0 1px 0 rgba(255,255,255,.7) inset,0 10px 24px -20px rgba(20,30,60,.4);}
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.5}
+  .app{max-width:760px;margin:0 auto;padding:14px clamp(12px,2.2vw,22px) 40px}
+  header.bar{display:flex;align-items:baseline;gap:8px 14px;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--line)}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);font-weight:600}
+  h1{font-size:clamp(1.02rem,2.4vw,1.4rem);margin:0;font-weight:660;letter-spacing:0;line-height:1.25}
+  .lede{font-family:var(--mono);font-size:12.5px;color:var(--muted);margin:12px 2px 8px;line-height:1.65}
+  .prog{font-family:var(--mono);font-size:12.5px;color:var(--ink);background:var(--panel);
+    border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:0 0 9px;
+    box-shadow:var(--shadow);overflow-x:auto;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .prog .sep{color:var(--line)}
+  .prog small{color:var(--muted);font-size:1em}
+  .controls{position:sticky;top:0;z-index:5;background:var(--bg);
+    padding:8px 0 8px;border-bottom:1px solid var(--line);margin-bottom:9px}
+  .grp{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:4px 0}
+  .glabel{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);min-width:76px;margin:0}
+  .seg,.row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .chip,.toggle{font-family:var(--mono);font-size:12.5px;padding:8px 13px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--muted);cursor:pointer;transition:.13s;min-height:44px;min-width:44px}
+  .chip:hover,.toggle:hover,#play:hover{border-color:var(--amber);color:var(--ink)}
+  .chip[aria-pressed="true"]{background:var(--amber);border-color:var(--amber);color:var(--dotink);font-weight:600}
+  .chip[aria-pressed="true"] .k{color:currentColor;opacity:.72}
+  .chip .k{display:block;font-size:10.5px;font-weight:500;color:var(--faint);margin-top:2px}
+  .toggle[data-voice="mel"][aria-pressed="true"]{background:var(--mel);border-color:var(--mel);color:#fff;font-weight:600}
+  .toggle[data-voice="bass"][aria-pressed="true"]{background:var(--bass);border-color:var(--bass);color:#fff;font-weight:600}
+  .tempo{display:flex;align-items:center;gap:10px;flex:1;min-width:220px}
+  input[type=range]{flex:1;min-width:120px;accent-color:var(--amber);height:28px}
+  .tval{font-family:var(--mono);font-size:12.5px;color:var(--ink);font-variant-numeric:tabular-nums;min-width:74px;text-align:right}
+  .transport{display:flex;gap:6px}
+  #play{font-family:var(--sans);font-size:14px;font-weight:600;padding:9px 16px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--ink);cursor:pointer;min-height:44px;transition:.13s;min-width:116px}
+  #play:active{transform:translateY(1px)}
+  #play[data-playing="true"]{background:var(--amber);border-color:var(--amber);color:var(--dotink)}
+  #play .dot{display:inline-block;width:.5rem;height:.5rem;border-radius:50%;background:currentColor;
+    margin-right:.5rem;vertical-align:middle}
+  #play[data-playing="true"] .dot{animation:pulse 1s ease-in-out infinite}
+  @keyframes pulse{50%{opacity:.25}}
+  @media(prefers-reduced-motion:reduce){#play .dot{animation:none}}
+  .cap{font-family:var(--mono);font-size:12.5px;color:var(--muted);margin:12px 2px 4px;line-height:1.65}
+  .cap b{color:var(--ink)}
+  .legend{display:flex;gap:12px 18px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--muted);margin:12px 2px 0}
+  .legend i{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-2px;margin-right:5px}
+  .foot{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin:14px 2px 0;line-height:1.6}
+  .foot b{color:var(--muted)}
+  button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+  @media (max-width:560px){
+    .controls{position:static}
+    .glabel{min-width:0;font-size:9.5px}
+    .tempo{min-width:180px}
+    .cap{font-size:12px}
+    .foot{display:none}
+  }
+</style>
+
+<div class="app">
+  <header class="bar">
+    <span class="eyebrow">Rhythm Groove</span>
+    <h1>リズムの軸 — 同じ和音、違うグルーヴ</h1>
+  </header>
+  <p class="lede">和音は1音も変えない。メロディも固定。ベースが和音を置く「時間」だけを切り替えると、同じ8小節がまるで別のジャンルになる。</p>
+
+  <div class="prog" aria-label="コード進行">
+    Am7 <span class="sep">·</span> Dm7 <span class="sep">·</span> G7 <span class="sep">·</span> Cmaj7 <span class="sep">·</span> Fmaj7 <span class="sep">·</span> Bm7♭5 <span class="sep">·</span> E7 <span class="sep">·</span> Am7&nbsp;&nbsp;<small>Fly Me To The Moon · A / 循環コード</small>
+  </div>
+
+  <section class="controls" aria-label="コントロール">
+    <div class="grp">
+      <p class="glabel">グルーヴ — ベースのリズムだけ変わる</p>
+      <div class="seg" id="seg" role="group" aria-label="グルーヴ">
+        <button class="chip" data-g="素直" aria-pressed="false">素直<span class="k">全音符</span></button>
+        <button class="chip" data-g="4つ打ち" aria-pressed="false">4つ打ち<span class="k">等間隔</span></button>
+        <button class="chip" data-g="ウォーキング" aria-pressed="true">ウォーキング<span class="k">ジャズ</span></button>
+        <button class="chip" data-g="ボサノヴァ" aria-pressed="false">ボサノヴァ<span class="k">ラテン</span></button>
+      </div>
+    </div>
+    <div class="grp">
+      <p class="glabel">パート</p>
+      <div class="row">
+        <button class="toggle" data-voice="mel" aria-pressed="true">メロディ</button>
+        <button class="toggle" data-voice="bass" aria-pressed="true">ベース</button>
+      </div>
+    </div>
+    <div class="grp">
+      <p class="glabel">テンポ</p>
+      <div class="tempo">
+        <input id="tempo" type="range" min="70" max="150" value="110" aria-label="テンポ (BPM)">
+        <span class="tval" id="tval">110 BPM</span>
+      </div>
+    </div>
+    <div class="transport">
+      <button id="play" data-playing="false"><span class="dot"></span><span id="playlabel">再生</span></button>
+    </div>
+  </section>
+
+  <p class="cap" id="cap"></p>
+  <div class="legend">
+    <span><i style="background:var(--mel)"></i>メロディ（固定）</span>
+    <span><i style="background:var(--bass)"></i>ベース（リズムだけ変更）</span>
+    <span><i style="background:var(--amber)"></i>選択中のグルーヴ</span>
+  </div>
+  <p class="foot">
+    <b>同じ和音の時間読み替え。</b> コードとメロディは固定し、ベースの打点だけを変える。
+    timing 以前に、音価と配置だけでグルーヴの顔が変わる。
+  </p>
+</div>
+
+<script>
+(function(){
+  const B=0.5455;
+  const MELraw=[[523.25,0,0.5455],[493.88,0.5455,0.5455],[440,1.0909,0.2727],
+    [392,1.3636,0.8182],[349.23,2.1818,0.8182],[392,3,0.2727],[440,3.2727,0.5455],
+    [523.25,3.8182,0.5455],[493.88,4.3636,0.5455],[440,4.9091,0.5455],[392,5.4545,0.2727],
+    [349.23,5.7273,0.8182],[329.63,6.5455,2.1818],[440,8.7273,0.5455],[392,9.2727,0.5455],
+    [349.23,9.8182,0.2727],[329.63,10.0909,0.8182],[293.66,10.9091,0.8182],[329.63,11.7273,0.2727],
+    [349.23,12,0.5455],[440,12.5455,0.5455],[415.3,13.0909,0.5455],[349.23,13.6364,0.5455],
+    [329.63,14.1818,0.2727],[293.66,14.4545,0.8182],[261.63,15.2727,1.6364],[277.18,16.9091,0.5455]];
+  const MEL=MELraw.map(([f,t,d])=>[f,t/B,d/B]);
+  const nf=(pc,oct)=>440*Math.pow(2,(pc+12*(oct+1)-69)/12);
+  const ROOT=[9,2,7,0,5,11,4,9], FIFTH=[4,9,2,7,0,5,11,4];
+  const BASS=ROOT.map((r,i)=>({root:nf(r,2),fifth:nf(FIFTH[i],2)}));
+  const GROOVES={
+    "素直":[[0,0,4]],
+    "4つ打ち":[[0,0,.92],[1,0,.92],[2,0,.92],[3,0,.92]],
+    "ウォーキング":[[0,0,.95,1],[1,1,.95,1],[2,0,.95,1],[3,1,.95,1]],
+    "ボサノヴァ":[[0,0,1.4],[1.5,1,.5],[2,0,1.4],[3.5,1,.5]],
+  };
+  const CAP={
+    "素直":"ベースはルートを全音符で置くだけ。和音の骨格は見えるが、まだ「時間」が動いていない — ジャンル以前の状態。",
+    "4つ打ち":"ルートを4分で等間隔に踏む。前へ押す推進力（ダンス・ロック寄り）。同じ和音が急に動き出す。",
+    "ウォーキング":"ルートと5度を歩くように4分で繋ぐ（スイング）。ジャズのウォーキングベース。和音は同じでも歩幅で時間が流れる。",
+    "ボサノヴァ":"1拍目ルート＋2拍裏で5度を先取りする2フィート（スルド）。ラテンの浮遊感。打点を裏へずらすだけで別の国の音楽になる。",
+  };
+
+  let groove="ウォーキング", melOn=true, bassOn=true, bpm=110;
+  let ctx=null, master=null, playing=false, gen=0, timer=null, unlocked=false;
+
+  function unlock(){
+    if(!ctx) ctx=new (window.AudioContext||window.webkitAudioContext)();
+    if(ctx.state==="suspended") ctx.resume();
+    if(unlocked) return; unlocked=true;
+    const b=ctx.createBuffer(1,1,22050), s=ctx.createBufferSource();
+    s.buffer=b; s.connect(ctx.destination); s.start(0);
+  }
+  function tone(freq,t0,dur,type,peak,cutoff){
+    const o=ctx.createOscillator(), g=ctx.createGain();
+    o.type=type; o.frequency.value=freq;
+    if(cutoff){const lp=ctx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=cutoff;
+      o.connect(lp); lp.connect(g);} else o.connect(g);
+    g.connect(master);
+    const a=0.008, rel=Math.min(0.13,dur*0.35);
+    g.gain.setValueAtTime(0,t0);
+    g.gain.linearRampToValueAtTime(peak,t0+a);
+    g.gain.setTargetAtTime(0.0001,t0+Math.max(a,dur-rel),rel/3);
+    o.start(t0); o.stop(t0+dur+0.12);
+  }
+  function scheduleCycle(start){
+    const bd=60/bpm;
+    if(melOn) for(const [f,sb,db] of MEL) tone(f,start+sb*bd,db*bd,"triangle",0.16,0);
+    if(bassOn){ const G=GROOVES[groove];
+      for(let bar=0;bar<8;bar++){ const b=BASS[bar];
+        for(const [off,pi,dur,sw] of G){
+          let beat=bar*4+off; if(sw&&(off===1||off===3)) beat+=0.08;
+          tone(pi===0?b.root:b.fifth, start+beat*bd, dur*bd, "sawtooth", 0.24, 460);
+        }
+      }
+    }
+  }
+  const $=id=>document.getElementById(id);
+  function setPlay(on){
+    playing=on;
+    $("play").dataset.playing=on?"true":"false";
+    $("playlabel").textContent=on?"停止":"再生";
+  }
+  function start(){
+    unlock();
+    master=ctx.createGain(); master.gain.value=0.9; master.connect(ctx.destination);
+    gen++; const myGen=gen; setPlay(true);
+    const bd=60/bpm, cycle=32*bd; let t=ctx.currentTime+0.12;
+    (function loop(){
+      if(!playing||myGen!==gen) return;
+      scheduleCycle(t); t+=cycle;
+      timer=setTimeout(loop, cycle*1000-250);
+    })();
+  }
+  function stop(){
+    gen++; setPlay(false); if(timer) clearTimeout(timer);
+    if(master) master.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.05);
+  }
+  function togglePlay(){ playing?stop():start(); }
+  function restartIfPlaying(){ if(playing){ stop(); setTimeout(start,60); } }
+
+  function paint(){
+    document.querySelectorAll("[data-g]").forEach(b=>b.setAttribute("aria-pressed", b.dataset.g===groove?"true":"false"));
+    $("cap").innerHTML="<b>"+groove+"</b> — "+CAP[groove];
+  }
+  document.querySelectorAll("[data-g]").forEach(b=> b.onclick=()=>{ groove=b.dataset.g; paint(); restartIfPlaying(); });
+  document.querySelectorAll("[data-voice]").forEach(b=> b.onclick=()=>{
+    const on=b.getAttribute("aria-pressed")!=="true"; b.setAttribute("aria-pressed",on?"true":"false");
+    if(b.dataset.voice==="mel") melOn=on; else bassOn=on; restartIfPlaying();
+  });
+  $("tempo").oninput=e=>{ bpm=+e.target.value; $("tval").textContent=bpm+" BPM"; };
+  $("tempo").onchange=restartIfPlaying;
+  $("play").onclick=togglePlay;
+  paint();
+})();
+</script>
+</body></html>
