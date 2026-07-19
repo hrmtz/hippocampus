@@ -1,0 +1,20 @@
+# hippocampus BGE-M3 embed server — systemd user unit template.
+# Edit paths for your install (%h = your home directory; adjust the checkout
+# path if you cloned elsewhere). Install as a *user* unit:
+#   cp systemd/hippocampus-embed.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload && systemctl --user enable --now hippocampus-embed
+# Operator copies of the real deployed units live in systemd.local/ (untracked).
+[Unit]
+Description=hippocampus BGE-M3 embed server (127.0.0.1:8086)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/projects/hippocampus-mcp
+ExecStart=%h/projects/hippocampus-mcp/run_embed_server.sh
+Restart=on-failure
+RestartSec=10
+Environment=HF_HOME=%h/.hf_cache
+
+[Install]
+WantedBy=default.target

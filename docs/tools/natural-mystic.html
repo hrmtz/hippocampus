@@ -1,0 +1,661 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Natural Mystic — ワンドロップ研究（譜面・合奏・ラボ）</title><style>
+:root{--bg:#f5f2ea;--panel:#fffdf7;--ink:#20241f;--muted:#69706a;--line:#e4e0d3;--gold:#c1852a;--green:#2c7a55;--red:#c0472f;--blue:#2f6bbf;--purple:#7a5bb0;
+ --serif:"Iowan Old Style","Hiragino Mincho ProN",Georgia,serif;--sans:-apple-system,"Hiragino Sans","Noto Sans CJK JP",sans-serif;--mono:ui-monospace,"SF Mono",Menlo,monospace;}
+@media(prefers-color-scheme:dark){:root{--bg:#14170f;--panel:#1d211a;--ink:#e9ece3;--muted:#98a094;--line:#2c3128;--gold:#d9a044;--green:#4fae7f;--red:#e06a52;--blue:#6ea3e6;--purple:#a98fd8;}}
+:root[data-theme=light]{--bg:#f5f2ea;--panel:#fffdf7;--ink:#20241f;--muted:#69706a;--line:#e4e0d3;--gold:#c1852a;--green:#2c7a55;--red:#c0472f;--blue:#2f6bbf;--purple:#7a5bb0;}
+:root[data-theme=dark]{--bg:#14170f;--panel:#1d211a;--ink:#e9ece3;--muted:#98a094;--line:#2c3128;--gold:#d9a044;--green:#4fae7f;--red:#e06a52;--blue:#6ea3e6;--purple:#a98fd8;}
+*{box-sizing:border-box}html,body{background:var(--bg);margin:0}
+.wrap{max-width:640px;margin:0 auto;padding:2rem 1rem 3rem;font-family:var(--sans);color:var(--ink);line-height:1.66}
+.eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--green);margin:0 0 .4rem}
+h1{font-family:var(--serif);font-weight:600;font-size:1.7rem;line-height:1.18;margin:0 0 .5rem;text-wrap:balance}h1 em{font-style:italic;color:var(--gold)}
+.sub{color:var(--muted);font-size:.95rem;margin:0 0 1.2rem}
+.toc{display:flex;gap:.5rem;flex-wrap:wrap;font-family:var(--mono);font-size:.76rem;margin:0 0 1.4rem}
+.toc a{color:var(--blue);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:.3rem .7rem}
+section{border-top:1px solid var(--line);margin-top:2rem;padding-top:1.2rem}
+h2{font-family:var(--serif);font-size:1.25rem;margin:0 0 .5rem}
+h2 .n{font-family:var(--mono);font-size:.8rem;color:var(--green);margin-right:.5rem}
+h3{font-family:var(--serif);font-size:1.02rem;margin:1.3rem 0 .3rem}
+p{margin:.5rem 0;font-size:.93rem}.g{color:var(--green);font-weight:700}.k{color:var(--gold);font-weight:700}.pp{color:var(--purple);font-weight:700}.r{color:var(--red);font-weight:700}.b{color:var(--blue);font-weight:700}
+.score{overflow-x:auto;background:#faf7f0;color:#1a1a1a;border:1px solid #e5dfce;border-radius:12px;padding:.8rem .6rem;margin:1rem 0}.score svg{max-width:100%;height:auto}
+.tab{font-family:var(--mono);font-size:.83rem;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:.6rem .8rem;margin:.2rem 0 1rem;overflow-x:auto;white-space:pre;line-height:1.5}
+.viz{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.4rem;margin:.6rem 0}.viz canvas{width:100%;height:158px;display:block}
+.vcap{font-size:.76rem;color:var(--muted);margin:.3rem 0 0;display:flex;gap:1rem;flex-wrap:wrap;font-family:var(--mono)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:1rem;margin:1rem 0}
+.rowc{display:flex;gap:.55rem;align-items:center;flex-wrap:wrap;margin:.6rem 0}.rowc:first-child{margin-top:0}
+.rowc .lb{font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);min-width:6em}
+.playbtn{font-size:1rem;font-weight:700;padding:.7rem 1.4rem;border:none;border-radius:11px;background:var(--green);color:#fff;cursor:pointer;min-height:50px;flex:1}
+.playbtn[data-on=true]{background:var(--panel);color:var(--green);border:1.5px solid var(--green)}
+.part{font-size:.88rem;font-weight:700;padding:.5rem .85rem;border:1.5px solid var(--line);border-radius:999px;background:transparent;color:var(--muted);cursor:pointer;min-height:44px;display:inline-flex;align-items:center;gap:.4rem}
+.part::before{content:"";width:.6rem;height:.6rem;border-radius:50%;background:var(--line)}
+.part[data-p=bass][aria-pressed=true]{color:var(--green);border-color:var(--green)}.part[data-p=bass][aria-pressed=true]::before{background:var(--green)}
+.part[data-p=guitar][aria-pressed=true]{color:var(--gold);border-color:var(--gold)}.part[data-p=guitar][aria-pressed=true]::before{background:var(--gold)}
+.part[data-p=vocal][aria-pressed=true]{color:var(--purple);border-color:var(--purple)}.part[data-p=vocal][aria-pressed=true]::before{background:var(--purple)}
+.tgl{font-size:.82rem;font-weight:600;padding:.5rem .8rem;border:1.5px solid var(--line);border-radius:999px;background:transparent;color:var(--muted);cursor:pointer;min-height:44px}.tgl[aria-pressed=true]{color:var(--red);border-color:var(--red)}
+.stepper{display:flex;align-items:center;gap:.5rem}.stepper button{width:40px;height:40px;border:1.5px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font-size:1.1rem;cursor:pointer}.stepper .v{font-family:var(--mono);font-size:.85rem;min-width:3.4em;text-align:center;color:var(--muted)}
+input[type=range]{flex:1;accent-color:var(--gold);min-width:110px}.val{font-family:var(--mono);font-size:.78rem;color:var(--muted);min-width:4.8em;text-align:right}
+.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:.4rem;margin:.4rem 0 .2rem}
+.cell{aspect-ratio:1/1.1;border:1.5px solid var(--line);border-radius:9px;background:var(--panel);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:1rem;color:var(--muted);transition:transform .05s,box-shadow .1s}
+.cell[data-note]{color:#fff}.cell[data-note=E]{background:var(--blue);border-color:var(--blue)}.cell[data-note=G]{background:var(--gold);border-color:var(--gold)}.cell[data-note=A]{background:var(--green);border-color:var(--green)}
+.cell.beat{border-bottom-width:3px}.cell.on{box-shadow:0 0 0 3px color-mix(in srgb,var(--red) 60%,transparent);transform:translateY(-2px)}
+.beats{display:grid;grid-template-columns:repeat(6,1fr);gap:.4rem;margin-bottom:1rem;font-family:var(--mono);font-size:.7rem;color:var(--muted);text-align:center}.beats span:nth-child(3n+1){color:var(--ink);font-weight:700}
+.mini{font-size:.85rem;color:var(--muted);padding:.5rem .7rem;border:1px dashed var(--line);border-radius:8px;cursor:pointer;background:transparent}
+.foot{font-size:.8rem;color:var(--muted);border-top:1px solid var(--line);margin-top:2rem;padding-top:.9rem}a{color:var(--blue)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.tri{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.8rem;margin:1rem 0}
+.tri-cap{font-family:var(--mono);font-size:.74rem;color:var(--green);margin:0 0 .5rem}
+.tri-brk{display:grid;grid-template-columns:repeat(6,1fr);gap:.3rem;font-family:var(--mono);font-size:.7rem;color:var(--muted);text-align:center;margin-bottom:.15rem}
+.tri-brk .b3{grid-column:span 3;border-top:1.5px solid var(--muted);border-left:1.5px solid var(--muted);border-right:1.5px solid var(--muted);border-radius:6px 6px 0 0;padding-top:.05rem}
+.tri-row,.tri-beat{display:grid;grid-template-columns:repeat(6,1fr);gap:.3rem}
+.tri-cell{aspect-ratio:1/1.05;border:1.5px solid var(--line);border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:1rem;color:#fff}
+.tri-cell.rest{color:var(--muted);background:transparent;border-style:dashed}
+.tri-cell.nE{background:var(--blue);border-color:var(--blue)}.tri-cell.nG{background:var(--gold);border-color:var(--gold)}.tri-cell.nA{background:var(--green);border-color:var(--green)}
+.tri-beat{font-family:var(--mono);font-size:.68rem;color:var(--muted);text-align:center;margin-top:.35rem}.tri-beat span:nth-child(3n+1){color:var(--ink);font-weight:700}
+</style></head><body>
+<div class="wrap">
+<p class="eyebrow">リズムの軸 · 実例研究</p>
+<h1>Natural Mystic — <em>ワンドロップ研究</em></h1>
+<p class="sub">Bob Marley &amp; The Wailers（Aston "Family Man" Barrett）。A マイナー一発、<b>1拍目を落として</b>浮かせるレゲエのベース。譜面を見て、合奏で聴いて、自分でいじる — 1ページで。</p>
+<div class="toc"><a href="#score">① 譜面</a><a href="#ens">② 合奏で聴く</a><a href="#lab">③ リズム・ラボ</a><a href="#why">④ なぜ浮くのか</a></div>
+
+<section id="score"><h2><span class="n">①</span>譜面 — 原曲のベース</h2>
+<p>同じ「<b>5度–♭7–ルート</b>」の型がコードで動く。<b>Am7</b>: <span class="g">E(5度下)→G(♭7)→A→A(root)</span>、<b>Dm</b>: A→C→D、<b>G</b>: G を刻む。<b class="r">G が3拍</b>に着地する=ワンドロップの重心。</p>
+<div class="score"><svg width="500px" height="177px" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" overflow="visible" id="yvrhbzm">
+   <desc>Engraved by Verovio 6.2.1-8d42439</desc>
+   <defs>
+      <g id="E062-yvrhbzm">
+         <path transform="scale(1,-1)" d="M582 -120c0 32 26 58 58 58s58 -26 58 -58s-26 -58 -58 -58s-58 26 -58 58zM582 120c0 32 26 58 58 58s58 -26 58 -58s-26 -58 -58 -58s-58 26 -58 58zM158 96c51 0 73 -14 88 -49l16 -39c0 -17 -2 -30 -7 -40c-3 -11 -10 -21 -19 -31c-17 -18 -49 -43 -84 -43 c-55 0 -77 13 -112 44c-24 21 -35 55 -35 100c0 46 14 81 32 112c30 52 71 79 137 93l36 6l26 2c154 0 235 -68 274 -182c11 -32 18 -68 18 -107c0 -103 -26 -182 -68 -250c-89 -145 -234 -230 -412 -288l-30 -5c-9 0 -14 3 -14 8c3 10 5 11 10 16c35 15 70 30 96 44l78 43 c96 57 162 136 197 258c9 33 17 60 22 100c3 22 5 35 6 39c-7 69 -16 115 -23 140s-4 22 -16 40c-8 12 -19 23 -31 34c-24 21 -62 44 -118 44c-48 0 -84 -8 -113 -28c-28 -19 -42 -44 -42 -73v-16c2 -5 3 -9 4 -11c24 22 52 39 84 39z" />
+      </g>
+      <g id="E084-yvrhbzm">
+         <path transform="scale(1,-1)" d="M20 -78c84 97 114 180 134 329h170c-13 -32 -82 -132 -99 -151l-84 -97c-33 -36 -59 -63 -80 -81h162v102l127 123v-225h57v-39h-57v-34c0 -43 19 -65 57 -65v-34h-244v36c48 0 60 26 60 70v27h-203v39z" />
+      </g>
+      <g id="E4E5-yvrhbzm">
+         <path transform="scale(1,-1)" d="M107 292c-13 24 -30 49 -52 71c-1 1 0 2 0 3l-2 2c3 3 4 4 6 4c12 0 26 -7 40 -20s44 -40 89 -81c26 -24 28 -29 46 -47c4 -4 8 -9 10 -14c6 -8 8 -16 8 -27c0 -19 -12 -40 -36 -61c-28 -23 -49 -38 -61 -73c-4 -11 -7 -27 -10 -50c13 -43 34 -83 59 -121 c31 -47 59 -79 101 -129c-8 0 -26 7 -54 20l-62 29l-21 6l-23 1c-25 0 -45 -10 -60 -30l-4 -14l-1 -12c0 -33 20 -56 39 -78c8 -9 17 -18 26 -26c17 -15 27 -24 28 -30l-3 -3c-11 5 -19 10 -25 15c-9 3 -37 21 -45 26c-24 14 -45 32 -63 51c-19 21 -37 44 -37 71 c0 63 27 95 80 95c41 0 86 -18 136 -52c-19 26 -37 48 -55 66c-23 23 -48 44 -73 65c-28 23 -47 40 -58 53s-17 26 -18 39c75 64 113 125 113 183c0 27 -7 48 -18 68z" />
+      </g>
+      <g id="E4E6-yvrhbzm">
+         <path transform="scale(1,-1)" d="M0 123c7 34 33 56 69 60c29 -3 43 -9 53 -29c4 -8 7 -15 10 -22c0 -21 -1 -25 -11 -35c-5 -8 -18 -14 -40 -20l12 -3l15 -1c44 0 97 26 122 56c10 11 18 26 24 42c7 1 15 2 22 3l-140 -424h-36l111 330c-10 -6 -27 -12 -53 -16l-52 -8h-10l-20 1c-1 0 -8 3 -21 6 c-37 9 -55 28 -55 60z" />
+      </g>
+      <g id="E0A4-yvrhbzm">
+         <path transform="scale(1,-1)" d="M0 -39c0 68 73 172 200 172c66 0 114 -37 114 -95c0 -84 -106 -171 -218 -171c-64 0 -96 30 -96 94z" />
+      </g>
+      <g id="E240-yvrhbzm">
+         <path transform="scale(1,-1)" d="M179 -646c15 29 29 55 46 102c18 49 30 108 30 138c0 105 -80 173 -168 200c-18 5 -47 9 -87 16v190h22c8 0 33 -61 71 -95c4 -3 -2 3 61 -56c62 -58 122 -137 122 -241c0 -38 -13 -106 -35 -163c-20 -51 -43 -99 -66 -132c-6 -5 -10 -7 -13 -7s-5 2 -5 5l4 10 c1 3 14 25 18 33z" />
+      </g>
+   </defs>
+   <style type="text/css">#yvrhbzm g.ending, #yvrhbzm g.fing, #yvrhbzm g.reh, #yvrhbzm g.tempo {font-weight:bold;}#yvrhbzm g.dir, #yvrhbzm g.dynam, #yvrhbzm g.mNum {font-style:italic;}#yvrhbzm g.label {font-weight:normal;}#yvrhbzm ellipse, #yvrhbzm path, #yvrhbzm polygon, #yvrhbzm polyline, #yvrhbzm rect {stroke:currentColor}</style>
+   <svg class="definition-scale" color="black" font-family="Times, serif" viewBox="0 0 12500 4420">
+      <g class="page-margin" transform="translate(120, 120)">
+         <g id="i16hf0l0" class="mdiv pageMilestone" />
+         <g id="jr71vk3" class="score pageMilestone" />
+         <g id="mpc3lfg" class="system">
+            <g id="h58ar07" class="label">
+               <text x="947" y="990" text-anchor="end" font-size="0px">
+                  <tspan id="ioz1itl" class="text">
+                     <tspan font-size="405px">Bass</tspan>
+                  </tspan>
+               </text>
+            </g>
+            <g id="l1vmks89" class="section systemMilestone" />
+            <g id="o1ub2r1y" class="section systemMilestone" />
+            <g id="awbeqf6" class="measure">
+               <g id="j1h0g8mf" class="staff">
+                  <path d="M1127 540 L7262 540" stroke-width="13" />
+                  <path d="M1127 720 L7262 720" stroke-width="13" />
+                  <path d="M1127 900 L7262 900" stroke-width="13" />
+                  <path d="M1127 1080 L7262 1080" stroke-width="13" />
+                  <path d="M1127 1260 L7262 1260" stroke-width="13" />
+                  <g id="h1c45ysf" class="clef">
+                     <use xlink:href="#E062-yvrhbzm" transform="translate(1215, 720) scale(0.72, 0.72)" />
+                  </g>
+                  <g id="i1kb0zzr" class="keySig" />
+                  <g id="jydzurd" class="meterSig">
+                     <use xlink:href="#E084-yvrhbzm" transform="translate(1882, 720) scale(0.72, 0.72)" />
+                     <use xlink:href="#E084-yvrhbzm" transform="translate(1882, 1080) scale(0.72, 0.72)" />
+                  </g>
+                  <g class="ledgerLines below">
+                     <path d="M4116 1440 L4438 1440" stroke-width="22" />
+                  </g>
+                  <g id="mh2nzg2" class="layer">
+                     <g id="nwbp8ci" class="rest">
+                        <use xlink:href="#E4E5-yvrhbzm" transform="translate(2441, 900) scale(0.72, 0.72)" />
+                     </g>
+                     <g id="o1gyhnko" class="rest">
+                        <use xlink:href="#E4E6-yvrhbzm" transform="translate(3484, 900) scale(0.72, 0.72)" />
+                     </g>
+                     <g id="p1342ivw" class="note">
+                        <g class="notehead">
+                           <use xlink:href="#E0A4-yvrhbzm" transform="translate(4164, 1440) scale(0.72, 0.72)" />
+                        </g>
+                        <g id="n1x1pd0t" class="stem">
+                           <path d="M4381 1412 L4381 810" stroke-width="18" />
+                           <g id="o1qgkzi7" class="flag">
+                              <use xlink:href="#E240-yvrhbzm" transform="translate(4372, 810) scale(0.72, 0.72)" />
+                           </g>
+                        </g>
+                        <g id="q1ohqmt5" class="accid" />
+                        <g id="r1xwpbq5" class="verse">
+                           <g id="s1376a" class="syl">
+                              <text x="4074" y="1847" font-size="0px">
+                                 <tspan id="tz77k9d" class="text">
+                                    <tspan font-size="405px">0</tspan>
+                                 </tspan>
+                              </text>
+                           </g>
+                        </g>
+                     </g>
+                     <g id="uiwlel0" class="note">
+                        <g class="notehead">
+                           <use xlink:href="#E0A4-yvrhbzm" transform="translate(4845, 1260) scale(0.72, 0.72)" />
+                        </g>
+                        <g id="p1a7rzgj" class="stem">
+                           <path d="M5062 1232 L5062 630" stroke-width="18" />
+                        </g>
+                        <g id="v1r0zjr0" class="accid" />
+                        <g id="w1pyiidl" class="verse">
+                           <g id="xz796ei" class="syl">
+                              <text x="4755" y="1847" font-size="0px">
+                                 <tspan id="yhdtqt8" class="text">
+                                    <tspan font-size="405px">3</tspan>
+                                 </tspan>
+                              </text>
+                           </g>
+                        </g>
+                     </g>
+                     <g id="z1tfnpgu" class="beam">
+                        <polygon points="6096,540 6795,540 6795,630 6096,630" />
+                        <g id="a17vhrzg" class="note">
+                           <g class="notehead">
+                              <use xlink:href="#E0A4-yvrhbzm" transform="translate(5888, 1170) scale(0.72, 0.72)" />
+                           </g>
+                           <g id="q1yw6wi5" class="stem">
+                              <path d="M6105 1142 L6105 558" stroke-width="18" />
+                           </g>
+                           <g id="bheptx7" class="accid" />
+                           <g id="c1yiouju" class="verse">
+                              <g id="dajwvpo" class="syl">
+                                 <text x="5798" y="1847" font-size="0px">
+                                    <tspan id="es9lugb" class="text">
+                                       <tspan font-size="405px">5</tspan>
+                                    </tspan>
+                                 </text>
+                              </g>
+                           </g>
+                        </g>
+                        <g id="frkmyxt" class="note">
+                           <g class="notehead">
+                              <use xlink:href="#E0A4-yvrhbzm" transform="translate(6569, 1170) scale(0.72, 0.72)" />
+                           </g>
+                           <g id="rca5m9e" class="stem">
+                              <path d="M6786 1142 L6786 558" stroke-width="18" />
+                           </g>
+                           <g id="gq63ze7" class="accid" />
+                           <g id="h5tb9mv" class="verse">
+                              <g id="iljc674" class="syl">
+                                 <text x="6479" y="1847" font-size="0px">
+                                    <tspan id="jtixp7v" class="text">
+                                       <tspan font-size="405px">5</tspan>
+                                    </tspan>
+                                 </text>
+                              </g>
+                           </g>
+                        </g>
+                     </g>
+                  </g>
+               </g>
+               <g id="kbgxbhk" class="harm">
+                  <text x="2441" y="362" font-size="0px">
+                     <tspan id="l16c75ao" class="text">
+                        <tspan font-size="405px" x="2441" y="362">Am7</tspan>
+                     </tspan>
+                  </text>
+               </g>
+               <g id="i3arr6y" class="barLine">
+                  <path d="M7249 540 L7249 1260" stroke-width="27" />
+               </g>
+            </g>
+            <g id="k1sby9zy" class="measure">
+               <g id="tuvnlm4" class="staff">
+                  <path d="M7262 540 L12260 540" stroke-width="13" />
+                  <path d="M7262 720 L12260 720" stroke-width="13" />
+                  <path d="M7262 900 L12260 900" stroke-width="13" />
+                  <path d="M7262 1080 L12260 1080" stroke-width="13" />
+                  <path d="M7262 1260 L12260 1260" stroke-width="13" />
+                  <g class="ledgerLines below">
+                     <path d="M9114 1440 L9436 1440" stroke-width="22" />
+                  </g>
+                  <g id="wxyfba" class="layer">
+                     <g id="x16ng74" class="rest">
+                        <use xlink:href="#E4E5-yvrhbzm" transform="translate(7439, 900) scale(0.72, 0.72)" />
+                     </g>
+                     <g id="y1qrx1he" class="rest">
+                        <use xlink:href="#E4E6-yvrhbzm" transform="translate(8482, 900) scale(0.72, 0.72)" />
+                     </g>
+                     <g id="z1gv7rm9" class="note">
+                        <g class="notehead">
+                           <use xlink:href="#E0A4-yvrhbzm" transform="translate(9162, 1440) scale(0.72, 0.72)" />
+                        </g>
+                        <g id="s4gflni" class="stem">
+                           <path d="M9379 1412 L9379 810" stroke-width="18" />
+                           <g id="t1lxaps9" class="flag">
+                              <use xlink:href="#E240-yvrhbzm" transform="translate(9370, 810) scale(0.72, 0.72)" />
+                           </g>
+                        </g>
+                        <g id="a1ji1q7k" class="accid" />
+                        <g id="b9gcdod" class="verse">
+                           <g id="cjk1tyk" class="syl">
+                              <text x="9072" y="1847" font-size="0px">
+                                 <tspan id="d10dnm3p" class="text">
+                                    <tspan font-size="405px">0</tspan>
+                                 </tspan>
+                              </text>
+                           </g>
+                        </g>
+                     </g>
+                     <g id="ee5x4df" class="note">
+                        <g class="notehead">
+                           <use xlink:href="#E0A4-yvrhbzm" transform="translate(9843, 1260) scale(0.72, 0.72)" />
+                        </g>
+                        <g id="uav1wd2" class="stem">
+                           <path d="M10060 1232 L10060 630" stroke-width="18" />
+                        </g>
+                        <g id="fcttofu" class="accid" />
+                        <g id="g1xmr9z9" class="verse">
+                           <g id="h7xkugm" class="syl">
+                              <text x="9753" y="1847" font-size="0px">
+                                 <tspan id="i13dukvj" class="text">
+                                    <tspan font-size="405px">3</tspan>
+                                 </tspan>
+                              </text>
+                           </g>
+                        </g>
+                     </g>
+                     <g id="jn3yr0i" class="beam">
+                        <polygon points="11094,540 11793,540 11793,630 11094,630" />
+                        <g id="k1h3gzvf" class="note">
+                           <g class="notehead">
+                              <use xlink:href="#E0A4-yvrhbzm" transform="translate(10886, 1170) scale(0.72, 0.72)" />
+                           </g>
+                           <g id="v1h4ngi6" class="stem">
+                              <path d="M11103 1142 L11103 558" stroke-width="18" />
+                           </g>
+                           <g id="lvxctow" class="accid" />
+                           <g id="m1u9r9sq" class="verse">
+                              <g id="n1moes7p" class="syl">
+                                 <text x="10796" y="1847" font-size="0px">
+                                    <tspan id="o1evn5z0" class="text">
+                                       <tspan font-size="405px">5</tspan>
+                                    </tspan>
+                                 </text>
+                              </g>
+                           </g>
+                        </g>
+                        <g id="p1jaonr9" class="note">
+                           <g class="notehead">
+                              <use xlink:href="#E0A4-yvrhbzm" transform="translate(11567, 1170) scale(0.72, 0.72)" />
+                           </g>
+                           <g id="w1pf3yem" class="stem">
+                              <path d="M11784 1142 L11784 558" stroke-width="18" />
+                           </g>
+                           <g id="qs4rdhe" class="accid" />
+                           <g id="r12y425b" class="verse">
+                              <g id="srh7vqm" class="syl">
+                                 <text x="11477" y="1847" font-size="0px">
+                                    <tspan id="t1hbixfm" class="text">
+                                       <tspan font-size="405px">5</tspan>
+                                    </tspan>
+                                 </text>
+                              </g>
+                           </g>
+                        </g>
+                     </g>
+                  </g>
+               </g>
+               <g id="u1noxpkz" class="harm">
+                  <text x="7439" y="362" font-size="0px">
+                     <tspan id="v16ugzbo" class="text">
+                        <tspan font-size="405px" x="7439" y="362">Am7</tspan>
+                     </tspan>
+                  </text>
+               </g>
+               <g id="s1ncavj7" class="barLine">
+                  <path d="M12247 540 L12247 1260" stroke-width="27" />
+               </g>
+            </g>
+         </g>
+         <g id="pwt736k" class="system">
+            <g id="u1621ln6" class="measure">
+               <g id="f1d0y50y" class="mNum autogenerated">
+                  <text y="2592" text-anchor="middle" font-size="0px">
+                     <tspan id="g40w6r" class="text">
+                        <tspan font-size="324px">3</tspan>
+                     </tspan>
+                  </text>
+               </g>
+               <g id="drht0za" class="staff">
+                  <path d="M0 2835 L6470 2835" stroke-width="13" />
+                  <path d="M0 3015 L6470 3015" stroke-width="13" />
+                  <path d="M0 3195 L6470 3195" stroke-width="13" />
+                  <path d="M0 3375 L6470 3375" stroke-width="13" />
+                  <path d="M0 3555 L6470 3555" stroke-width="13" />
+                  <g id="o1dyua5" class="clef">
+                     <use xlink:href="#E062-yvrhbzm" transform="translate(88, 3015) scale(0.72, 0.72)" />
+                  </g>
+                  <g id="p17sryof" class="keySig" />
+                  <g id="g1qvggiy" class="layer">
+                     <g id="h1nikb3g" class="rest">
+                        <use xlink:href="#E4E5-yvrhbzm" transform="translate(883, 3195) scale(0.72, 0.72)" />
+                     </g>
+                     <g id="i14ba3d2" class="rest">
+                        <use xlink:href="#E4E6-yvrhbzm" transform="translate(2093, 3195) scale(0.72, 0.72)" />
+                     </g>
+                     <g id="j1rfqo7q" class="note">
+                        <g class="notehead">
+                           <use xlink:href="#E0A4-yvrhbzm" transform="translate(2881, 3465) scale(0.72, 0.72)" />
+                        </g>
+                        <g id="x173nie7" class="stem">
+                           <path d="M3098 3437 L3098 2835" stroke-width="18" />
+                           <g id="y13s9d5w" class="flag">
+                              <use xlink:href="#E240-yvrhbzm" transform="translate(3089, 2835) scale(0.72, 0.72)" />
+                           </g>
+                        </g>
+                        <g id="k16a2pki" class="accid" />
+                        <g id="l2ttjqr" class="verse">
+                           <g id="m1vphlle" class="syl">
+                              <text x="2791" y="4092" font-size="0px">
+                                 <tspan id="nid5q19" class="text" />
+                              </text>
+                           </g>
+                        </g>
+                     </g>
+                     <g id="o7n2pir" class="note">
+                        <g class="notehead">
+                           <use xlink:href="#E0A4-yvrhbzm" transform="translate(3670, 3285) scale(0.72, 0.72)" />
+                        </g>
+                        <g id="z1wgqf7a" class="stem">
+                           <path d="M3887 3257 L3887 2655" stroke-width="18" />
+                        </g>
+                        <g id="p10f9c0a" class="accid" />
+                        <g id="qoe4hka" class="verse">
+                           <g id="r1949n8o" class="syl">
+                              <text x="3580" y="4092" font-size="0px">
+                                 <tspan id="se9qe5k" class="text" />
+                              </text>
+                           </g>
+                        </g>
+                     </g>
+                     <g id="t1hnpa7c" class="beam">
+                        <polygon points="4879,3780 5686,3780 5686,3690 4879,3690" />
+                        <g id="u11olocs" class="note">
+                           <g class="notehead">
+                              <use xlink:href="#E0A4-yvrhbzm" transform="translate(4879, 3195) scale(0.72, 0.72)" />
+                           </g>
+                           <g id="a8qvzxi" class="stem">
+                              <path d="M4888 3223 L4888 3762" stroke-width="18" />
+                           </g>
+                           <g id="v1ju1434" class="accid" />
+                           <g id="wbqgnjq" class="verse">
+                              <g id="x14utl3e" class="syl">
+                                 <text x="4789" y="4092" font-size="0px">
+                                    <tspan id="y1uc9nve" class="text" />
+                                 </text>
+                              </g>
+                           </g>
+                        </g>
+                        <g id="zavtpdj" class="note">
+                           <g class="notehead">
+                              <use xlink:href="#E0A4-yvrhbzm" transform="translate(5668, 3195) scale(0.72, 0.72)" />
+                           </g>
+                           <g id="bid9u4w" class="stem">
+                              <path d="M5677 3223 L5677 3762" stroke-width="18" />
+                           </g>
+                           <g id="a1oxzkcw" class="accid" />
+                           <g id="b1yn5ec6" class="verse">
+                              <g id="c1x9urpt" class="syl">
+                                 <text x="5578" y="4092" font-size="0px">
+                                    <tspan id="dm4aswz" class="text" />
+                                 </text>
+                              </g>
+                           </g>
+                        </g>
+                     </g>
+                  </g>
+               </g>
+               <g id="e10pkpzj" class="harm">
+                  <text x="883" y="2657" font-size="0px">
+                     <tspan id="fc6s97d" class="text">
+                        <tspan font-size="405px" x="883" y="2657">Dm</tspan>
+                     </tspan>
+                  </text>
+               </g>
+               <g id="ckjseob" class="barLine">
+                  <path d="M6457 2835 L6457 3555" stroke-width="27" />
+               </g>
+            </g>
+            <g id="e36t06y" class="measure">
+               <g id="nq3t0i9" class="staff">
+                  <path d="M6470 2835 L12261 2835" stroke-width="13" />
+                  <path d="M6470 3015 L12261 3015" stroke-width="13" />
+                  <path d="M6470 3195 L12261 3195" stroke-width="13" />
+                  <path d="M6470 3375 L12261 3375" stroke-width="13" />
+                  <path d="M6470 3555 L12261 3555" stroke-width="13" />
+                  <g id="q99k5wj" class="layer">
+                     <g id="r1g2ybln" class="rest">
+                        <use xlink:href="#E4E5-yvrhbzm" transform="translate(6674, 3195) scale(0.72, 0.72)" />
+                     </g>
+                     <g id="sfijs43" class="rest">
+                        <use xlink:href="#E4E6-yvrhbzm" transform="translate(7884, 3195) scale(0.72, 0.72)" />
+                     </g>
+                     <g id="tp6kduj" class="beam">
+                        <polygon points="8880,2970 10476,2970 10476,3060 8880,3060" />
+                        <g id="u12unxeo" class="note">
+                           <g class="notehead">
+                              <use xlink:href="#E0A4-yvrhbzm" transform="translate(8672, 3555) scale(0.72, 0.72)" />
+                           </g>
+                           <g id="c1tgxtoq" class="stem">
+                              <path d="M8889 3527 L8889 2988" stroke-width="18" />
+                           </g>
+                           <g id="v1f09nlx" class="accid" />
+                           <g id="w3qkkg" class="verse">
+                              <g id="x1vesxn0" class="syl">
+                                 <text x="8582" y="4092" font-size="0px">
+                                    <tspan id="y9wyhau" class="text" />
+                                 </text>
+                              </g>
+                           </g>
+                        </g>
+                        <g id="zigyyxh" class="note">
+                           <g class="notehead">
+                              <use xlink:href="#E0A4-yvrhbzm" transform="translate(9461, 3555) scale(0.72, 0.72)" />
+                           </g>
+                           <g id="dbetv1z" class="stem">
+                              <path d="M9678 3527 L9678 2988" stroke-width="18" />
+                           </g>
+                           <g id="a1s8qgeg" class="accid" />
+                           <g id="b1bgl1az" class="verse">
+                              <g id="c6sft5t" class="syl">
+                                 <text x="9371" y="4092" font-size="0px">
+                                    <tspan id="d5g4u1n" class="text" />
+                                 </text>
+                              </g>
+                           </g>
+                        </g>
+                        <g id="e1uhyd7o" class="note">
+                           <g class="notehead">
+                              <use xlink:href="#E0A4-yvrhbzm" transform="translate(10250, 3555) scale(0.72, 0.72)" />
+                           </g>
+                           <g id="e1mbiv5t" class="stem">
+                              <path d="M10467 3527 L10467 2988" stroke-width="18" />
+                           </g>
+                           <g id="f1u7aqi0" class="accid" />
+                           <g id="gsv0zjw" class="verse">
+                              <g id="haqs8tc" class="syl">
+                                 <text x="10160" y="4092" font-size="0px">
+                                    <tspan id="ix9o1bt" class="text" />
+                                 </text>
+                              </g>
+                           </g>
+                        </g>
+                     </g>
+                     <g id="jt3vj1s" class="note">
+                        <g class="notehead">
+                           <use xlink:href="#E0A4-yvrhbzm" transform="translate(11039, 3555) scale(0.72, 0.72)" />
+                        </g>
+                        <g id="f10bk9h2" class="stem">
+                           <path d="M11256 3527 L11256 2925" stroke-width="18" />
+                        </g>
+                        <g id="kqj21u5" class="accid" />
+                        <g id="l1fh5uvf" class="verse">
+                           <g id="mbvvr4z" class="syl">
+                              <text x="10949" y="4092" font-size="0px">
+                                 <tspan id="nlrgehl" class="text" />
+                              </text>
+                           </g>
+                        </g>
+                     </g>
+                  </g>
+               </g>
+               <g id="o18zpr7j" class="harm">
+                  <text x="6674" y="2657" font-size="0px">
+                     <tspan id="p18a2ca5" class="text">
+                        <tspan font-size="405px" x="6674" y="2657">G</tspan>
+                     </tspan>
+                  </text>
+               </g>
+               <g id="m7qg39r" class="barLine">
+                  <path d="M12248 2835 L12248 3555" stroke-width="27" />
+               </g>
+            </g>
+            <g id="xld3bn8" class="systemMilestoneEnd o1ub2r1y" />
+            <g id="yz2dx64" class="systemMilestoneEnd l1vmks89" />
+         </g>
+         <g id="z11n3ajg" class="pageMilestoneEnd jr71vk3" />
+         <g id="a49tazo" class="pageMilestoneEnd i16hf0l0" />
+      </g>
+   </svg>
+</svg></div>
+<div class="tab">Am7  低E弦 |  ・  0  3  5 5 |    拍 1 &amp;2 3 4&amp;    ♫ = 三連スウィング（レゲエ）</div>
+<div class="tri">
+ <p class="tri-cap">▸ 2拍3連で読む — 休符2個 ＋ 三連符4つ分（ワンドロップ）</p>
+ <div class="tri-brk"><span class="b3">3</span><span class="b3">3</span></div>
+ <div class="tri-row">
+   <div class="tri-cell rest">‐</div><div class="tri-cell rest">‐</div>
+   <div class="tri-cell nE">E</div><div class="tri-cell nG">G</div>
+   <div class="tri-cell nA">A</div><div class="tri-cell nA">A</div>
+ </div>
+ <div class="tri-beat"><span>1</span><span>ト</span><span>レ</span><span>2</span><span>ト</span><span>レ</span></div>
+ <p style="font-size:.83rem;color:var(--muted);margin:.55rem 0 0">2拍を8分3連の6枠で捉える。<b>1拍目を落とし（休符2個）</b>、残り4つで <b class="b">E</b>→<b class="k">G</b>→<b class="g">A</b>→<b class="g">A</b>。straight 8分＋スウィングでなく、最初から三連の格子で読むと、ワンドロップの「浮き」と着地が一目で分かる。</p>
+</div></section>
+
+<section id="ens"><h2><span class="n">②</span>合奏で聴く</h2>
+<p><span class="pp">ボーカル</span>と<span class="k">ギター(2・4拍のskank)</span>を基準に固定、<span class="g">ベースだけ</span>を訛らせる。下のビュー＝<b>いまの小節</b>と、ベースが基準からどれだけ<b>ズレた</b>か。</p>
+<div class="viz"><canvas id="ens-viz"></canvas>
+ <div class="vcap"><span style="color:var(--muted)">● ゴースト=まっすぐ</span><span class="g">● 実際=訛らせた位置</span><span><b class="r">|</b>3拍ドロップ</span><span><b class="k">▮</b>ギター2・4</span></div></div>
+<div class="panel">
+ <div class="rowc"><button id="ens-play" class="playbtn" data-on="false">▶ 合奏を再生</button></div>
+ <div class="rowc"><span class="lb">パート</span>
+   <button class="part" data-p="bass" aria-pressed="true">ベース</button>
+   <button class="part" data-p="guitar" aria-pressed="true">ギター</button>
+   <button class="part" data-p="vocal" aria-pressed="true">ボーカル</button></div>
+ <div class="rowc"><span class="lb">テンポ</span><input id="ens-t" type="range" min="50" max="120" value="76"><span class="val" id="ens-tv">76 BPM</span></div>
+ <div class="rowc"><span class="lb">スウィング</span><input id="ens-sw" type="range" min="0" max="100" value="60"><span class="val" id="ens-swv">三連 60%</span></div>
+ <div class="rowc"><span class="lb">訛り(タメ/食い)</span><input id="ens-ln" type="range" min="-100" max="100" value="0"><span class="val" id="ens-lnv">まっすぐ</span></div>
+ <div class="rowc"><span class="lb">ヨレ(ランダム)</span><input id="ens-hu" type="range" min="0" max="100" value="0"><span class="val" id="ens-huv">タイト</span></div>
+ <div class="rowc"><span class="lb">拍ずらし</span><div class="stepper"><button id="ens-pl">◀</button><span class="v" id="ens-pv">0 /8</span><button id="ens-pr">▶</button></div><span class="val" style="flex:1;text-align:left">1=裏拍へ</span></div>
+</div></section>
+
+<section id="lab"><h2><span class="n">③</span>リズム・ラボ — 自分でいじる</h2>
+<p><b>2拍＝8分3連の6枠</b>（straight 8分でなく最初から三連の格子）。枠タップで <span class="b">E</span>→<span class="k">G</span>→<span class="g">A</span>→休 と切替。訛り(タメ/食い)・ヨレ・拍ずらしで揺らして、<b>原曲に戻す</b>で NM（休休EGAA）へ。</p>
+<div class="grid" id="lab-grid"></div>
+<div class="beats"><span>1</span><span>ト</span><span>レ</span><span>2</span><span>ト</span><span>レ</span></div>
+<div class="panel">
+ <div class="rowc"><button id="lab-play" class="playbtn" data-on="false">▶ ラボを再生</button>
+   <button id="lab-click" class="tgl" aria-pressed="false">拍を鳴らす</button>
+   <button id="lab-reset" class="mini">原曲に戻す</button></div>
+ <div class="rowc"><span class="lb">テンポ</span><input id="lab-t" type="range" min="50" max="140" value="76"><span class="val" id="lab-tv">76 BPM</span></div>
+ <div class="rowc"><span class="lb">訛り(タメ/食い)</span><input id="lab-ln" type="range" min="-100" max="100" value="0"><span class="val" id="lab-lnv">まっすぐ</span></div>
+ <div class="rowc"><span class="lb">ヨレ(ランダム)</span><input id="lab-hu" type="range" min="0" max="100" value="0"><span class="val" id="lab-huv">タイト</span></div>
+ <div class="rowc"><span class="lb">拍ずらし</span><div class="stepper"><button id="lab-pl">◀</button><span class="v" id="lab-pv">0 /6</span><button id="lab-pr">▶</button></div></div>
+</div></section>
+
+<section id="why"><h2><span class="n">④</span>なぜ浮くのか</h2>
+<p><b class="r">1拍目を落とす</b>（ワンドロップ）。ダウンビートに床が無いので、聴き手は<b>内部パルス</b>を自分で持つ — それがレゲエの気持ちよさであり難しさ。<b>スウィング</b>=ウラを三連へ寄せる粘り、<b class="k">訛り</b>=タメ（後ノリ）／食い（前ノリ）の<b>一定方向</b>の粘り＝そのグルーヴの個性、<b>ヨレ</b>=<b>ランダム</b>な揺れ（人間ノイズ、方向は定まらない）、<b>拍ずらし</b>=同じ打点のまま「1」の格子を動かす（メトリック・ディスプレイスメント＝時間のトニックの選び直し）。訛りを消すと標準語、ヨレを消すと死んだ打ち込み。和音が動いても<b>「5度→♭7→ルートで着地」</b>の一つの型が走っているだけ。</p>
+<p class="foot">出典=print-gakufu「Natural Mystic」Words &amp; Music by Bob Marley（© 1977 Blue Mountain Music）。3パートは MuseScore 転写。抽象原理は <a href="/fly-me-anatomy">リズムの軸 §5</a>、グルーヴ切替は <a href="/tools/rhythm-groove.html">rhythm-groove</a>。音=MIDI→Hz合成。イントロ(m1-4)器楽、歌はm5から。</p></section>
+</div><script>
+var PARTS={"vocal":[[18.5,[69],1],[19.5,[72],0.5],[20.0,[74],1],[21.0,[74],1],[22.0,[74],1],[23.0,[76],1],[24.0,[72],1],[25.0,[69],1],[26.0,[69],1],[27.0,[67],0.5],[27.5,[69],0.5],[28.0,[69],1]],"guitar":[[1.0,[60,64,67,69],1],[3.0,[60,64,67,69],1],[5.0,[60,64,67,69],1],[7.0,[60,64,67,69],1],[9.0,[60,64,67,69],1],[11.0,[60,64,67,69],1],[13.0,[60,64,67,69],1],[15.0,[60,64,67,69],1],[17.0,[60,64,67,69],1],[18.5,[69],1],[19.5,[72],0.5],[20.0,[74],1],[21.0,[65,69,74],1],[22.0,[74],1],[23.0,[65,69,76],1],[24.0,[72],1],[25.0,[59,62,69],1],[26.0,[69],1],[27.0,[59,62,67],0.5],[27.5,[69],0.5],[28.0,[69],4],[29.0,[60,64],1],[31.0,[60,64],1]],"bass":[[0.0,[45],1],[1.5,[40],0.5],[2.0,[43],1],[3.0,[45],0.5],[3.5,[45],0.5],[5.5,[40],0.5],[6.0,[43],1],[7.0,[45],0.5],[7.5,[45],0.5],[9.5,[40],0.5],[10.0,[43],1],[11.0,[45],0.5],[11.5,[45],0.5],[13.5,[40],0.5],[14.0,[43],1],[15.0,[45],0.5],[15.5,[45],0.5],[17.5,[40],0.5],[18.0,[43],1],[19.0,[45],0.5],[19.5,[45],0.5],[21.5,[45],0.5],[22.0,[48],1],[23.0,[50],0.5],[23.5,[50],0.5],[25.5,[43],0.5],[26.0,[43],0.5],[26.5,[43],0.5],[27.0,[43],1],[29.5,[40],0.5],[30.0,[43],1],[31.0,[45],0.5],[31.5,[45],0.5]]}, SECT=32;
+var ctx=null, unlocked=false, active=null;   // active player: "ens" | "lab" | null
+function mtof(m){return 440*Math.pow(2,(m-69)/12);}
+function unlock(){if(!ctx)ctx=new(window.AudioContext||window.webkitAudioContext)();/* iOS: 無音<audio>を鳴らしてミュートスイッチ(消音スイッチ)を回避 */if(!window._sil){window._sil=new Audio("data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YSADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==");window._sil.loop=true;window._sil.setAttribute("playsinline","");window._sil.volume=1;}try{var pp=window._sil.play();if(pp&&pp.catch)pp.catch(function(){});}catch(e){}if(!unlocked){unlocked=true;try{var b=ctx.createBuffer(1,1,22050),s=ctx.createBufferSource();s.buffer=b;s.connect(ctx.destination);s.start(0);}catch(e){}}return ctx.state==="suspended"?ctx.resume():Promise.resolve();}
+function bassV(mst,f,t,d){var o=ctx.createOscillator(),g=ctx.createGain(),lp=ctx.createBiquadFilter();o.type="sawtooth";o.frequency.value=f;lp.type="lowpass";lp.frequency.value=440;o.connect(lp);lp.connect(g);g.connect(mst);var a=.01,rel=Math.min(.14,d*.4);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.3,t+a);g.gain.setTargetAtTime(.0001,t+Math.max(a,d-rel),rel/3);o.start(t);o.stop(t+d+.12);}
+function gtrV(mst,f,t,d){var o=ctx.createOscillator(),g=ctx.createGain(),hp=ctx.createBiquadFilter();o.type="square";o.frequency.value=f;hp.type="highpass";hp.frequency.value=350;o.connect(hp);hp.connect(g);g.connect(mst);var dur=Math.min(d,.28);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.05,t+.005);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.start(t);o.stop(t+dur+.05);}
+function vocV(mst,f,t,d){var o=ctx.createOscillator(),o2=ctx.createOscillator(),g=ctx.createGain();o.type="triangle";o2.type="sine";o.frequency.value=f;o2.frequency.value=f;o.connect(g);o2.connect(g);g.connect(mst);var a=.02,rel=Math.min(.12,d*.3);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.12,t+a);g.gain.setValueAtTime(.12,t+Math.max(a,d-rel));g.gain.exponentialRampToValueAtTime(.0001,t+d);o.start(t);o2.start(t);o.stop(t+d+.05);o2.stop(t+d+.05);}
+function clk(mst,t,acc){var o=ctx.createOscillator(),g=ctx.createGain();o.type="square";o.frequency.value=acc?1500:1950;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(acc?.14:.055,t+.004);g.gain.setTargetAtTime(.0001,t+.01,.02);o.connect(g);g.connect(mst);o.start(t);o.stop(t+.08);if(acc){var d=ctx.createOscillator(),dg=ctx.createGain();d.type="sine";d.frequency.setValueAtTime(150,t);d.frequency.exponentialRampToValueAtTime(60,t+.12);dg.gain.setValueAtTime(.22,t);dg.gain.exponentialRampToValueAtTime(.001,t+.16);d.connect(dg);dg.connect(mst);d.start(t);d.stop(t+.2);}}
+function swb(b,sw){var fl=b-Math.floor(b);if(Math.abs(fl-0.5)<1e-6)return Math.floor(b)+0.5+sw*(1/6);return b;}
+function $(id){return document.getElementById(id);}
+
+// ===================== ENSEMBLE =====================
+var ens={bpm:76,swing:.6,human:0,lean:0,phase:0,playing:false,master:null,gen:0,timer:0,t0:0,secStart:0,on:{bass:1,guitar:1,vocal:1}};
+var bassByBar={};PARTS.bass.forEach(function(e){var bar=Math.floor(e[0]/4);(bassByBar[bar]=bassByBar[bar]||[]).push([+(e[0]-bar*4).toFixed(3),e[1][0],e[2]]);});
+function ensJit(b){if(!ens.human)return 0;var r=Math.sin(b*12.9898+ens.phase*7.13)*43758.5453;r-=Math.floor(r);return ens.human*.06*(r-.5)*2;}
+function ensSched(start){var bd=60/ens.bpm,m=ens.master;
+ if(ens.on.guitar)PARTS.guitar.forEach(function(e){if(e[0]<SECT)e[1].forEach(function(p){gtrV(m,mtof(p),start+e[0]*bd,e[2]*bd);});});
+ if(ens.on.vocal)PARTS.vocal.forEach(function(e){if(e[0]<SECT)vocV(m,mtof(e[1][0]),start+e[0]*bd,e[2]*bd);});
+ if(ens.on.bass)PARTS.bass.forEach(function(e){if(e[0]>=SECT)return;var b=e[0]+ens.phase*.5;b=swb(b,ens.swing)+ensJit(b)+ens.lean;if(b<0)b+=SECT;bassV(m,mtof(e[1][0]),start+b*bd,e[2]*bd);});}
+function ensLoop(){if(!ens.playing)return;var bd=60/ens.bpm,sec=SECT*bd,now=ctx.currentTime;while(ens.secStart<now+.3){ensSched(ens.secStart);ens.secStart+=sec;}ens.timer=setTimeout(ensLoop,60);}
+function ensStart(){stopLab();$("ens-play").textContent="■ 停止";$("ens-play").dataset.on="true";unlock().then(function(){ens.master=ctx.createGain();ens.master.gain.value=.85;ens.master.connect(ctx.destination);ens.playing=true;active="ens";ens.gen++;ens.t0=ens.secStart=ctx.currentTime+.15;ensLoop();});}
+function stopEns(){ens.playing=false;ens.gen++;if(ens.timer)clearTimeout(ens.timer);if(ens.master)ens.master.gain.setTargetAtTime(.0001,ctx.currentTime,.05);$("ens-play").textContent="▶ 合奏を再生";$("ens-play").dataset.on="false";}
+// viz
+var cv=$("ens-viz"),g2=cv.getContext("2d"),dpr=Math.min(window.devicePixelRatio||1,2);
+function ensResize(){cv.width=cv.clientWidth*dpr;cv.height=158*dpr;g2.setTransform(dpr,0,0,dpr,0,0);}
+window.addEventListener("resize",ensResize);
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function ensDraw(){var w=cv.clientWidth,h=158,L=8,R=10,T=22,B=24,pw=w-L-R,ph=h-T-B;g2.clearRect(0,0,w,h);
+ var ink=css('--ink'),mut=css('--muted'),ln=css('--line'),grn=css('--green'),gld=css('--gold'),red=css('--red');
+ var X=function(be){return L+pw*be/4;};var bd=60/ens.bpm,barDur=4*bd,curBar=0,barPos=-1;
+ if(ens.playing&&ctx){var el=ctx.currentTime-ens.t0;if(el>=0){var bi=Math.floor(el/barDur);curBar=((bi%8)+8)%8;barPos=(el-bi*barDur)/barDur;}}
+ g2.strokeStyle=ln;for(var e2=0;e2<8;e2++){var xx=X(e2/2);g2.globalAlpha=.45;g2.beginPath();g2.moveTo(xx,T+ph-6);g2.lineTo(xx,T+ph);g2.stroke();}g2.globalAlpha=1;
+ for(var b=0;b<4;b++){var x=X(b);g2.strokeStyle=(b===2)?red:ln;g2.lineWidth=(b===2)?2:1;g2.beginPath();g2.moveTo(x,T);g2.lineTo(x,T+ph);g2.stroke();g2.fillStyle=(b===2)?red:mut;g2.font='11px ui-monospace';g2.textAlign='center';g2.fillText(String(b+1),x,T+ph+16);}
+ [1,3].forEach(function(gb){g2.fillStyle=gld;g2.fillRect(X(gb)-4,T+2,8,11);});
+ g2.fillStyle=mut;g2.font='10px ui-monospace';g2.textAlign='left';g2.fillText('ギター 2・4',L,T-8);
+ var yB=T+ph*.62,evs=bassByBar[curBar]||bassByBar[0]||[];
+ evs.forEach(function(o){var st=o[0],act=swb(st+ens.phase*.5,ens.swing)+ens.lean;act=((act%4)+4)%4;
+  g2.globalAlpha=.32;g2.fillStyle=mut;g2.beginPath();g2.arc(X(st),yB,6,0,7);g2.fill();g2.globalAlpha=1;
+  if(Math.abs(act-st)<2){g2.strokeStyle=grn;g2.globalAlpha=.5;g2.lineWidth=2;g2.beginPath();g2.moveTo(X(st),yB);g2.lineTo(X(act),yB);g2.stroke();g2.globalAlpha=1;}
+  if(ens.human>.02){g2.fillStyle=grn;g2.globalAlpha=.18;g2.beginPath();g2.arc(X(act),yB,7+ens.human*22,0,7);g2.fill();g2.globalAlpha=1;}
+  g2.fillStyle=grn;g2.beginPath();g2.arc(X(act),yB,7,0,7);g2.fill();});
+ if(barPos>=0){g2.strokeStyle=ink;g2.globalAlpha=.75;g2.lineWidth=2;g2.beginPath();g2.moveTo(X(barPos*4),T-6);g2.lineTo(X(barPos*4),T+ph+4);g2.stroke();g2.globalAlpha=1;}
+ requestAnimationFrame(ensDraw);}
+$("ens-play").onclick=function(){ens.playing?stopEns():ensStart();};
+// モバイル(iOS等)対策: 最初のユーザ操作で AudioContext を先行 unlock/resume しておく。
+["pointerdown","touchend","keydown"].forEach(function(ev){document.addEventListener(ev,function _u(){unlock();document.removeEventListener(ev,_u);},{once:true,passive:true});});
+document.querySelectorAll("#ens [data-p]").forEach(function(bn){bn.onclick=function(){var p=bn.dataset.p;ens.on[p]=!ens.on[p];bn.setAttribute("aria-pressed",ens.on[p]);};});
+$("ens-t").oninput=function(e){ens.bpm=+e.target.value;$("ens-tv").textContent=ens.bpm+" BPM";};
+$("ens-sw").oninput=function(e){ens.swing=e.target.value/100;$("ens-swv").textContent=ens.swing<.04?"ストレート":"三連 "+e.target.value+"%";};
+$("ens-ln").oninput=function(e){var v=+e.target.value;ens.lean=v/100*.12;$("ens-lnv").textContent=v===0?"まっすぐ":(v<0?"食い(前) "+(-v)+"%":"タメ(後) "+v+"%");};
+$("ens-hu").oninput=function(e){ens.human=e.target.value/100;$("ens-huv").textContent=ens.human<.02?"タイト":(ens.human>.6?"ゆるい":"少しヨレ");};
+function ensPhase(p){ens.phase=((p%8)+8)%8;$("ens-pv").textContent=ens.phase+" /8";}
+$("ens-pl").onclick=function(){ensPhase(ens.phase-1);};$("ens-pr").onclick=function(){ensPhase(ens.phase+1);};
+
+// ===================== LAB =====================
+var lab={bpm:76,swing:.6,human:0,lean:0,phase:0,click:0,playing:false,master:null,gen:0,timer:0,barStart:0};
+// 2拍3連: 2拍=8分3連の6枠。休休 ＋ E G A A(ワンドロップ)。1スロット= bd/3 拍。
+var NM=[null,null,"E","G","A","A"],pattern=NM.slice(),FB={E:82.41,G:98,A:110};
+var grid=$("lab-grid"),cells=[];for(var i=0;i<6;i++){var c=document.createElement("button");c.className="cell"+((i%3===0)?" beat":"");c.dataset.i=i;grid.appendChild(c);cells.push(c);}
+function labPaint(){for(var i=0;i<6;i++){var n=pattern[i];if(n){cells[i].dataset.note=n;cells[i].textContent=n;}else{cells[i].removeAttribute("data-note");cells[i].textContent="·";}}}
+var CY=[null,"E","G","A"];grid.addEventListener("click",function(e){var c=e.target.closest(".cell");if(!c)return;var i=+c.dataset.i;pattern[i]=CY[(CY.indexOf(pattern[i])+1)%4];labPaint();});
+function labSlot(s){return s/3;}   // 三連8分: slot i = i/3 拍(スウィング不要、格子が三連)
+function labJit(s){if(!lab.human)return 0;var r=Math.sin(s*12.9898+lab.phase*7.13)*43758.5453;r-=Math.floor(r);return lab.human*.06*(r-.5)*2;}
+function labSched(start){var bd=60/lab.bpm,m=lab.master;for(var s=0;s<6;s++){var n=pattern[((s-lab.phase)%6+6)%6];if(n)bassV(m,FB[n],start+(labSlot(s)+labJit(s)+lab.lean)*bd,.42*bd);if(lab.click&&s%3===0){var beat=s/3;clk(m,start+beat*bd,false);}}}
+function labLoop(){if(!lab.playing)return;var bd=60/lab.bpm,bar=2*bd,now=ctx.currentTime;while(lab.barStart<now+.2){labSched(lab.barStart);lab.barStart+=bar;}lab.timer=setTimeout(labLoop,40);}
+function labHead(){if(!lab.playing){cells.forEach(function(c){c.classList.remove("on");});return;}var bd=60/lab.bpm,bar=2*bd,t=ctx.currentTime-(lab.barStart-bar);if(t<0)t+=bar;var step=Math.min(5,Math.max(0,Math.round(t/(bd/3))))%6;cells.forEach(function(c,i){c.classList.toggle("on",i===step);});requestAnimationFrame(labHead);}
+function labStart(){stopEns();$("lab-play").textContent="■ 停止";$("lab-play").dataset.on="true";unlock().then(function(){lab.master=ctx.createGain();lab.master.gain.value=.9;lab.master.connect(ctx.destination);lab.playing=true;active="lab";lab.gen++;lab.barStart=ctx.currentTime+.12;labLoop();requestAnimationFrame(labHead);});}
+function stopLab(){lab.playing=false;lab.gen++;if(lab.timer)clearTimeout(lab.timer);if(lab.master)lab.master.gain.setTargetAtTime(.0001,ctx.currentTime,.05);cells.forEach(function(c){c.classList.remove("on");});$("lab-play").textContent="▶ ラボを再生";$("lab-play").dataset.on="false";}
+$("lab-play").onclick=function(){lab.playing?stopLab():labStart();};
+$("lab-click").onclick=function(){lab.click=!lab.click;this.setAttribute("aria-pressed",lab.click);};
+$("lab-reset").onclick=function(){pattern=NM.slice();lab.phase=0;$("lab-pv").textContent="0 /6";labPaint();};
+$("lab-t").oninput=function(e){lab.bpm=+e.target.value;$("lab-tv").textContent=lab.bpm+" BPM";};
+$("lab-ln").oninput=function(e){var v=+e.target.value;lab.lean=v/100*.12;$("lab-lnv").textContent=v===0?"まっすぐ":(v<0?"食い(前) "+(-v)+"%":"タメ(後) "+v+"%");};
+$("lab-hu").oninput=function(e){lab.human=e.target.value/100;$("lab-huv").textContent=lab.human<.02?"タイト":(lab.human>.6?"ゆるい":"少しヨレ");};
+function labPhase(p){lab.phase=((p%6)+6)%6;$("lab-pv").textContent=lab.phase+" /6";}
+$("lab-pl").onclick=function(){labPhase(lab.phase-1);};$("lab-pr").onclick=function(){labPhase(lab.phase+1);};
+
+labPaint();ensResize();ensDraw();
+</script></body></html>

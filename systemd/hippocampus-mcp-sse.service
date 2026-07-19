@@ -1,0 +1,21 @@
+# hippocampus MCP SSE server — systemd user unit template.
+# Edit paths for your install (%h = your home directory; adjust the checkout
+# path if you cloned elsewhere). Install as a *user* unit:
+#   cp systemd/hippocampus-mcp-sse.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload && systemctl --user enable --now hippocampus-mcp-sse
+# (If you must run it as a system unit instead, add a User= line and replace
+# %h with that user's home directory.)
+# Operator copies of the real deployed units live in systemd.local/ (untracked).
+[Unit]
+Description=hippocampus MCP SSE server (remote MCP access)
+After=network.target hippocampus-embed.service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/projects/hippocampus-mcp
+ExecStart=%h/projects/hippocampus-mcp/run_server_sse.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

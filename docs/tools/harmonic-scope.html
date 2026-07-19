@@ -1,0 +1,579 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Harmonic Scope — 協和・うなり・弦の五度調弦</title>
+<style>
+  :root{
+    --bg:#0d1016; --panel:#141a25; --panel2:#1a2130; --line:#283245;
+    --ink:#e9edf4; --muted:#8b97ab; --faint:#5c6577;
+    --amber:#ffb454; --cyan:#4fd6e0; --rose:#ff6b9d; --green:#7ee081;
+    --grid:rgba(255,255,255,.055); --axis:rgba(255,255,255,.16);
+    --shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 10px 26px -18px rgba(0,0,0,.7);
+    --mono:ui-monospace,"SF Mono",Menlo,"Cascadia Mono",monospace;
+    --sans:system-ui,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#eef0f3; --panel:#ffffff; --panel2:#f4f6f9; --line:#dfe4ec;
+      --ink:#1b2230; --muted:#5c6577; --faint:#8a94a4;
+      --amber:#b96e12; --cyan:#0d8699; --rose:#cf3a6e; --green:#2f9a45;
+      --grid:rgba(20,30,50,.06); --axis:rgba(20,30,50,.2);
+      --shadow:0 1px 0 rgba(255,255,255,.7) inset, 0 10px 24px -20px rgba(20,30,60,.4);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0d1016; --panel:#141a25; --panel2:#1a2130; --line:#283245;
+    --ink:#e9edf4; --muted:#8b97ab; --faint:#5c6577;
+    --amber:#ffb454; --cyan:#4fd6e0; --rose:#ff6b9d; --green:#7ee081;
+    --grid:rgba(255,255,255,.055); --axis:rgba(255,255,255,.16);
+    --shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 10px 26px -18px rgba(0,0,0,.7);
+  }
+  :root[data-theme="light"]{
+    --bg:#eef0f3; --panel:#ffffff; --panel2:#f4f6f9; --line:#dfe4ec;
+    --ink:#1b2230; --muted:#5c6577; --faint:#8a94a4;
+    --amber:#b96e12; --cyan:#0d8699; --rose:#cf3a6e; --green:#2f9a45;
+    --grid:rgba(20,30,50,.06); --axis:rgba(20,30,50,.2);
+    --shadow:0 1px 0 rgba(255,255,255,.7) inset, 0 10px 24px -20px rgba(20,30,60,.4);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    overflow:hidden;-webkit-font-smoothing:antialiased}
+  .app{height:100dvh;max-width:1920px;margin:0 auto;padding:16px clamp(14px,1.6vw,26px);
+    display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:13px}
+
+  header.bar{display:flex;align-items:center;gap:10px 16px;flex-wrap:wrap;
+    padding-bottom:11px;border-bottom:1px solid var(--line)}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--amber);font-weight:600}
+  h1{font-size:clamp(1rem,1.6vw,1.35rem);margin:0;font-weight:660;letter-spacing:-.01em}
+  .modes{display:flex;gap:6px;margin-left:6px}
+  .mchip{font-family:var(--mono);font-size:12px;padding:6px 13px;border-radius:999px;
+    border:1px solid var(--line);background:var(--panel2);color:var(--muted);cursor:pointer;transition:.15s}
+  .mchip:hover{border-color:var(--amber);color:var(--ink)}
+  .mchip[aria-pressed="true"]{background:var(--amber);border-color:var(--amber);color:#12151c;font-weight:600}
+  :root[data-theme="light"] .mchip[aria-pressed="true"]{color:#fff}
+  @media(prefers-color-scheme:light){.mchip[aria-pressed="true"]{color:#fff}}
+  .hint{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-left:auto;text-align:right}
+  .hint b{color:var(--muted);font-weight:600}
+
+  .stage{display:grid;grid-template-columns:1.6fr 1fr;gap:13px;min-height:0}
+  .side{display:grid;grid-template-rows:1.35fr auto;gap:13px;min-height:0}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow)}
+  .scope{position:relative;display:flex;flex-direction:column;min-height:0;padding:12px 14px 8px}
+  canvas{flex:1;min-height:0;width:100%;display:block;border-radius:8px;background:var(--panel2)}
+  .caption{font-family:var(--mono);font-size:10.5px;letter-spacing:.03em;color:var(--faint);
+    margin:8px 2px 0;text-transform:uppercase}
+
+  .info{padding:13px 16px;display:flex;flex-direction:column;justify-content:center;gap:7px;min-height:0}
+  .ilabel{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--amber);letter-spacing:.02em}
+  .istat{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);
+    font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:6px}
+  .istat b{color:var(--ink);font-weight:600;font-size:15px;font-variant-numeric:tabular-nums}
+  .ibeat{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--rose);min-height:16px}
+  table.stbl{width:100%;border-collapse:collapse;font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .stbl th{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);
+    font-weight:600;text-align:right;padding:0 0 5px}
+  .stbl th:first-child{text-align:left}
+  .stbl td{font-size:12.5px;color:var(--ink);text-align:right;padding:4px 0;border-top:1px solid var(--line)}
+  .stbl td:first-child{text-align:left;color:var(--muted);font-weight:600}
+  .stbl tr.sel td{background:color-mix(in srgb,var(--amber) 15%,transparent)}
+  .stbl .dev{color:var(--rose);font-weight:600}
+  .stbl .zero{color:var(--faint)}
+
+  footer.console{display:flex;align-items:stretch;gap:12px 20px;flex-wrap:wrap;padding:12px 16px}
+  .grp{display:flex;flex-direction:column;gap:5px;justify-content:center}
+  .grp.wide{flex:2 1 250px}
+  .grp.slider{flex:1 1 140px;min-width:130px;max-width:220px}
+  .grp.detgrp{flex:1 1 210px;min-width:200px;max-width:280px}
+  .ruler{position:relative;height:31px;margin-top:3px}
+  .ruler .tk{position:absolute;top:0;width:1px;height:5px;background:var(--faint);opacity:.7}
+  .ruler .tk.z{height:8px;opacity:1;background:var(--muted)}
+  .ruler .tl{position:absolute;top:7px;font-family:var(--mono);font-size:9px;color:var(--faint);transform:translateX(-50%)}
+  .ruler .mk{position:absolute;top:0;width:2px;height:11px;border-radius:1px}
+  .ruler .mk.zb{background:var(--green)}
+  .ruler .mk.et{background:var(--amber)}
+  .ruler .mkl{position:absolute;font-family:var(--mono);font-size:9px;font-weight:600;
+    transform:translateX(-50%);white-space:nowrap}
+  .ruler .mkl.zb{top:11px;color:var(--green)}
+  .ruler .mkl.et{top:20px;color:var(--amber)}
+  .grp.actions{flex:1 1 auto;justify-content:center}
+  .gtitle{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-family:var(--mono);font-size:12px;padding:6px 11px;border-radius:999px;
+    border:1px solid var(--line);background:var(--panel2);color:var(--muted);cursor:pointer;
+    transition:.15s;font-variant-numeric:tabular-nums}
+  .chip:hover{border-color:var(--amber);color:var(--ink)}
+  .chip[aria-pressed="true"]{background:var(--amber);border-color:var(--amber);color:#12151c;font-weight:600}
+  :root[data-theme="light"] .chip[aria-pressed="true"]{color:#fff}
+  @media(prefers-color-scheme:light){.chip[aria-pressed="true"]{color:#fff}}
+  .chip.cy[aria-pressed="true"]{background:var(--cyan);border-color:var(--cyan)}
+  .slabel{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .slabel b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:5px;border-radius:5px;
+    background:var(--line);outline:none;margin:2px 0;width:100%}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;
+    border-radius:50%;background:var(--amber);cursor:pointer;border:2px solid var(--panel)}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--amber);
+    cursor:pointer;border:2px solid var(--panel)}
+  input:focus-visible{box-shadow:0 0 0 3px color-mix(in srgb,var(--amber) 40%,transparent)}
+  .btns{display:flex;gap:9px;flex-wrap:wrap}
+  button.play{font-family:var(--mono);font-size:13px;font-weight:600;padding:10px 18px;border-radius:9px;
+    border:1px solid var(--amber);background:var(--amber);color:#12151c;cursor:pointer;transition:.15s}
+  :root[data-theme="light"] button.play{color:#fff}
+  @media(prefers-color-scheme:light){button.play{color:#fff}}
+  button.play.on{background:var(--rose);border-color:var(--rose);color:#fff}
+  .toggle{font-family:var(--mono);font-size:12px;padding:9px 12px;border-radius:9px;
+    border:1px solid var(--line);background:var(--panel2);color:var(--muted);cursor:pointer}
+  .toggle[aria-pressed="true"]{border-color:var(--cyan);color:var(--ink)}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:6px}
+  .legend i{display:inline-block;width:16px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+
+  .app[data-mode="scope"] .only-tune{display:none!important}
+  .app[data-mode="tune"] .only-scope{display:none!important}
+
+  @media (max-height:770px) and (pointer:coarse), (max-width:820px){
+    body{overflow:auto}
+    .app{height:auto;min-height:100dvh;grid-template-rows:auto auto auto}
+    .stage{grid-template-columns:1fr}
+    .scope{min-height:290px}
+  }
+  @media (max-width:560px){
+    button.btn{padding:11px 15px;font-size:13.5px}
+    .hint{margin-left:0;text-align:left;width:100%}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="app" data-mode="tune">
+  <header class="bar">
+    <span class="eyebrow">Harmonic Scope</span>
+    <h1>倍音・うなり・弦の五度調弦</h1>
+    <div class="modes">
+      <button class="mchip" id="m_scope" data-mode="scope" aria-pressed="false">音程スコープ</button>
+      <button class="mchip" id="m_tune" data-mode="tune" aria-pressed="true">弦調弦 A=442</button>
+    </div>
+    <span class="hint" id="hint"></span>
+  </header>
+
+  <main class="stage">
+    <section class="panel scope">
+      <canvas id="wave" aria-label="合成波形"></canvas>
+      <span class="caption" id="waveCap">時間領域 — 選んだ2弦の合成波（うなり＝脈打つ包絡線）</span>
+    </section>
+    <div class="side">
+      <section class="panel scope">
+        <canvas id="spec" aria-label="スペクトル / ズレ図"></canvas>
+        <span class="caption" id="specCap">平均律（0線）からのズレ [cent]</span>
+      </section>
+      <section class="panel info" id="info"></section>
+    </div>
+  </main>
+
+  <footer class="console panel">
+    <!-- scope mode -->
+    <div class="grp wide only-scope">
+      <span class="gtitle">音程プリセット（純正比）</span>
+      <div class="chips" id="presets"></div>
+    </div>
+    <!-- tune mode -->
+    <div class="grp wide only-tune">
+      <span class="gtitle">調弦する五度ペア（A基準）</span>
+      <div class="chips" id="pairs"></div>
+    </div>
+    <div class="grp only-tune" style="justify-content:center">
+      <span class="gtitle">調弦法</span>
+      <div class="btns">
+        <button class="toggle" id="t_just" aria-pressed="true">純正五度</button>
+        <button class="toggle" id="t_et" aria-pressed="false">平均律</button>
+      </div>
+    </div>
+
+    <div class="grp slider detgrp">
+      <span class="slabel"><span id="detLbl">下弦デチューン</span> <b id="dv">+0 cent</b></span>
+      <input type="range" id="detune" min="-60" max="60" value="0" step="1">
+      <div class="ruler" id="ruler"></div>
+    </div>
+    <div class="grp slider">
+      <span class="slabel">倍音数 / 音 <b id="hv">5</b></span>
+      <input type="range" id="harm" min="1" max="8" value="5" step="1">
+    </div>
+    <div class="grp slider">
+      <span class="slabel">時間スパン <b id="sv">20 ms</b></span>
+      <input type="range" id="span" min="4" max="1500" value="20" step="1">
+    </div>
+    <div class="grp actions">
+      <div class="btns">
+        <button class="play" id="play" aria-pressed="false">▶ 鳴らす</button>
+        <button class="toggle" id="live" aria-pressed="false">うなりアニメ</button>
+        <button class="toggle" id="comp" aria-pressed="true">成分表示</button>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--amber)"></i>合成波 / 下弦</span>
+        <span><i style="background:var(--cyan)"></i>上弦</span>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const A_HZ=442, TAU=Math.PI*2;
+  // 弦（低→高）: n=Aからの五度数, semi=Aからの半音数
+  const STRINGS=[
+    {name:"G", n:-2, semi:-14},
+    {name:"D", n:-1, semi:-7},
+    {name:"A", n:0,  semi:0},
+    {name:"E", n:1,  semi:7},
+  ];
+  const pureHz=s=>A_HZ*Math.pow(1.5,s.n);          // 純正五度チェーン（ピタゴラス）
+  const etHz  =s=>A_HZ*Math.pow(2,s.semi/12);      // 平均律
+  const devCents=s=>1200*Math.log2(pureHz(s)/etHz(s));
+  const PAIRS=[{label:"G–D",lo:0,hi:1},{label:"D–A",lo:1,hi:2},{label:"A–E",lo:2,hi:3}];
+  const PRESETS=[{label:"ユニゾン 1:1",r:1},{label:"長3度 5:4",r:1.25},
+    {label:"完全4度 4:3",r:4/3},{label:"完全5度 3:2",r:1.5},{label:"オクターブ 2:1",r:2}];
+
+  const state={mode:"tune",ratio:1.5,label:"完全5度 3:2",pair:1,temper:"just",
+    detune:0,harm:5,span:20,showComp:true,playing:false};
+
+  const $=id=>document.getElementById(id);
+  const app=document.querySelector(".app");
+  const wave=$("wave"),spec=$("spec"),wctx=wave.getContext("2d"),sctx=spec.getContext("2d");
+  const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const effRatio=()=>state.ratio*Math.pow(2,state.detune/1200);
+
+  const clampC=c=>Math.max(-60,Math.min(60,c));
+  // 調弦対象の弦 = ペアのうち A から遠い側（D–A→D, G–D→G, A–E→E）。基準側は固定。
+  function targetIdx(){const p=PAIRS[state.pair];
+    return Math.abs(STRINGS[p.lo].n)>=Math.abs(STRINGS[p.hi].n)?p.lo:p.hi;}
+  // 現在鳴らす2音の絶対周波数 [下, 上]。tune では対象弦だけデチューン（基準弦は固定）。
+  function toneFreqs(){
+    if(state.mode==="scope")return {lo:A_HZ,hi:A_HZ*effRatio()};
+    const p=PAIRS[state.pair],ls=STRINGS[p.lo],hs=STRINGS[p.hi],k=Math.pow(2,state.detune/1200);
+    let lo=state.temper==="just"?pureHz(ls):etHz(ls);
+    let hi=state.temper==="just"?pureHz(hs):etHz(hs);
+    if(targetIdx()===p.lo)lo*=k;else hi*=k;
+    return {lo,hi};
+  }
+  // 目盛り: 対象弦を「うなり0(=純正五度)」に置く cent と「平均律」に置く cent
+  function tuneMarks(){
+    const p=PAIRS[state.pair],ti=targetIdx(),ts=STRINGS[ti],rs=STRINGS[ti===p.lo?p.hi:p.lo];
+    const tnom=state.temper==="just"?pureHz(ts):etHz(ts);
+    const rnom=state.temper==="just"?pureHz(rs):etHz(rs);
+    const zeroF=ti===p.lo?rnom/1.5:rnom*1.5;
+    return {zb:1200*Math.log2(zeroF/tnom),et:1200*Math.log2(etHz(ts)/tnom)};
+  }
+  function partials(){
+    const {lo,hi}=toneFreqs(),out=[];
+    for(let n=1;n<=state.harm;n++)out.push({f:n*lo,a:1/n,tone:0});
+    for(let n=1;n<=state.harm;n++)out.push({f:n*hi,a:1/n,tone:1});
+    return out;
+  }
+  // 2音の部分音のうち最も近い組=うなり（絶対Hz）
+  function beatInfo(){
+    const ps=partials(),lo=ps.filter(p=>p.tone===0),hi=ps.filter(p=>p.tone===1);
+    const lf=lo[0].f;let best=null;
+    for(const a of lo)for(const b of hi){const d=Math.abs(a.f-b.f);
+      if(d<28&&(!best||d<best.hz))best={hz:d,i:Math.round(a.f/lf)};}
+    return best;
+  }
+  function fit(cv,ctx){
+    const dpr=Math.min(window.devicePixelRatio||1,2),w=cv.clientWidth,h=cv.clientHeight;
+    if(w<2||h<2)return null;
+    cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);return {w,h};
+  }
+
+  function drawWave(){
+    const d=fit(wave,wctx);if(!d)return;const {w,h}=d;
+    wctx.clearRect(0,0,w,h);
+    const mid=h/2,spanS=state.span/1000,ps=partials();
+    // サンプル数 = 最高部分音の 2.5x オーバーサンプル（エイリアス防止）。ピクセルの2倍以上も担保。
+    const fMax=ps.reduce((m,p)=>Math.max(m,p.f),1);
+    const N=Math.min(60000,Math.max(1400,Math.ceil(spanS*fMax*2.5),Math.round(w*2)));
+    let norm=0;ps.forEach(p=>norm+=p.a);const amp=(h*0.44)/norm;
+    wctx.strokeStyle=css("--grid");wctx.lineWidth=1;
+    for(let i=1;i<10;i++){const x=w*i/10;wctx.beginPath();wctx.moveTo(x,0);wctx.lineTo(x,h);wctx.stroke();}
+    for(let i=1;i<4;i++){const y=h*i/4;wctx.beginPath();wctx.moveTo(0,y);wctx.lineTo(w,y);wctx.stroke();}
+    wctx.strokeStyle=css("--axis");wctx.beginPath();wctx.moveTo(0,mid);wctx.lineTo(w,mid);wctx.stroke();
+    const sample=(t,tone)=>{let y=0;for(const p of ps){if(tone!=null&&p.tone!==tone)continue;
+      y+=p.a*Math.cos(TAU*p.f*t);}return y;};
+    if(state.showComp){
+      const dr=(tone,color)=>{wctx.strokeStyle=color;wctx.globalAlpha=.26;wctx.lineWidth=1.1;wctx.beginPath();
+        for(let i=0;i<=N;i++){const t=spanS*i/N,y=mid-sample(t,tone)*amp;i?wctx.lineTo(w*i/N,y):wctx.moveTo(0,y);}
+        wctx.stroke();wctx.globalAlpha=1;};
+      dr(0,css("--amber"));dr(1,css("--cyan"));
+    }
+    // 合成波サンプル
+    const ys=new Float32Array(N+1);
+    for(let i=0;i<=N;i++)ys[i]=sample(spanS*i/N,null);
+    const longSpan=state.span>=120;   // うなり視認モード
+    if(longSpan){
+      const cols=Math.max(2,Math.floor(w)),env=new Float32Array(cols);
+      for(let i=0;i<=N;i++){const c=Math.min(cols-1,Math.floor(i/N*cols)),a=Math.abs(ys[i]);if(a>env[c])env[c]=a;}
+      wctx.fillStyle=css("--rose");wctx.globalAlpha=.12;wctx.beginPath();
+      for(let c=0;c<cols;c++){const x=c/(cols-1)*w,y=mid-env[c]*amp;c?wctx.lineTo(x,y):wctx.moveTo(x,y);}
+      for(let c=cols-1;c>=0;c--){const x=c/(cols-1)*w;wctx.lineTo(x,mid+env[c]*amp);}
+      wctx.closePath();wctx.fill();wctx.globalAlpha=1;
+      wctx.strokeStyle=css("--rose");wctx.lineWidth=1.5;
+      for(const s of [-1,1]){wctx.beginPath();
+        for(let c=0;c<cols;c++){const x=c/(cols-1)*w,y=mid+s*env[c]*amp;c?wctx.lineTo(x,y):wctx.moveTo(x,y);}
+        wctx.stroke();}
+    }
+    wctx.strokeStyle=css("--amber");wctx.lineWidth=longSpan?1:2;wctx.lineJoin="round";
+    if(!longSpan){wctx.shadowColor=css("--amber");wctx.shadowBlur=6;}
+    wctx.globalAlpha=longSpan?.85:1;wctx.beginPath();
+    for(let i=0;i<=N;i++){const x=w*i/N,y=mid-ys[i]*amp;i?wctx.lineTo(x,y):wctx.moveTo(x,y);}
+    wctx.stroke();wctx.shadowBlur=0;wctx.globalAlpha=1;
+    if(longSpan){const b=beatInfo();
+      if(b&&b.hz>0.05){const per=1000/b.hz;
+        wctx.fillStyle=css("--rose");wctx.font="600 12px "+css("--mono");wctx.textAlign="right";
+        wctx.fillText(`うなり周期 ≈ ${per.toFixed(0)} ms（${b.hz.toFixed(2)} Hz）`,w-10,18);}
+    }
+  }
+
+  function drawSpec(){ // scope mode: 倍音次数スペクトル
+    const d=fit(spec,sctx);if(!d)return;const {w,h}=d;
+    sctx.clearRect(0,0,w,h);
+    const lo=toneFreqs().lo,base=h-22,ps=partials(),maxF=Math.max(state.harm*effRatio(),state.harm,8.5)+0.7,
+      X=f=>18+(w-30)*(f/maxF);
+    sctx.strokeStyle=css("--axis");sctx.lineWidth=1;sctx.beginPath();sctx.moveTo(10,base);sctx.lineTo(w-6,base);sctx.stroke();
+    sctx.strokeStyle=css("--grid");sctx.fillStyle=css("--faint");sctx.font="10px "+css("--mono");sctx.textAlign="center";
+    for(let n=1;n<=Math.floor(maxF);n++){const x=X(n);sctx.beginPath();sctx.moveTo(x,8);sctx.lineTo(x,base);sctx.stroke();
+      sctx.fillText(n+"f",x,base+14);}
+    const stem=(p,color)=>{const x=X(p.f/lo),y=base-(base-12)*p.a;
+      sctx.strokeStyle=color;sctx.lineWidth=2.4;sctx.beginPath();sctx.moveTo(x,base);sctx.lineTo(x,y);sctx.stroke();
+      sctx.fillStyle=color;sctx.beginPath();sctx.arc(x,y,3.1,0,TAU);sctx.fill();};
+    ps.filter(p=>p.tone===0).forEach(p=>stem(p,css("--amber")));
+    ps.filter(p=>p.tone===1).forEach(p=>stem(p,css("--cyan")));
+  }
+
+  function drawTuneMap(){ // tune mode: 平均律(0線)からの純正五度ズレ
+    const d=fit(spec,sctx);if(!d)return;const {w,h}=d;
+    sctx.clearRect(0,0,w,h);
+    const mL=44,mR=54,mT=16,mB=22,cMin=-5,cMax=3,X=c=>mL+(w-mL-mR)*(c-cMin)/(cMax-cMin);
+    // cent grid
+    sctx.font="10px "+css("--mono");sctx.textAlign="center";
+    for(let c=cMin;c<=cMax;c++){const x=X(c),z=c===0;
+      sctx.strokeStyle=z?css("--axis"):css("--grid");sctx.lineWidth=z?1.4:1;
+      sctx.beginPath();sctx.moveTo(x,mT);sctx.lineTo(x,h-mB);sctx.stroke();
+      sctx.fillStyle=z?css("--muted"):css("--faint");sctx.fillText((c>0?"+":"")+c,x,h-mB+13);}
+    sctx.fillStyle=css("--muted");sctx.textAlign="center";sctx.fillText("平均律",X(0),mT-4);
+    const order=[3,2,1,0]; // E,A,D,G (高→低)
+    const rows=order.length,rh=(h-mT-mB-6)/rows;
+    order.forEach((si,idx)=>{
+      const s=STRINGS[si],y=mT+6+rh*(idx+0.5),dev=devCents(s),xz=X(0),xd=X(dev);
+      const isA=s.n===0, p=PAIRS[state.pair], selPair=(si===p.lo||si===p.hi);
+      sctx.strokeStyle=css("--line");sctx.lineWidth=1;sctx.beginPath();sctx.moveTo(mL,y);sctx.lineTo(w-mR,y);sctx.stroke();
+      // string label
+      sctx.fillStyle=selPair?css("--amber"):css("--muted");sctx.textAlign="right";
+      sctx.font=(selPair?"bold ":"")+"13px "+css("--mono");sctx.fillText(s.name,mL-8,y+4);
+      // ET marker (0)
+      sctx.strokeStyle=css("--faint");sctx.lineWidth=1.5;sctx.beginPath();sctx.arc(xz,y,3.4,0,TAU);sctx.stroke();
+      if(!isA){
+        // bar ET->pure
+        sctx.strokeStyle=css("--rose");sctx.lineWidth=2;sctx.beginPath();sctx.moveTo(xz,y);sctx.lineTo(xd,y);sctx.stroke();
+        // pure marker
+        sctx.fillStyle=selPair?css("--amber"):css("--cyan");sctx.beginPath();sctx.arc(xd,y,4.2,0,TAU);sctx.fill();
+        sctx.fillStyle=css("--rose");sctx.textAlign="left";sctx.font="10.5px "+css("--mono");
+        sctx.fillText((dev>0?"+":"")+dev.toFixed(2)+"¢",w-mR+6,y+3.5);
+      }else{
+        sctx.fillStyle=css("--amber");sctx.beginPath();sctx.arc(xz,y,4.2,0,TAU);sctx.fill();
+        sctx.fillStyle=css("--faint");sctx.textAlign="left";sctx.font="10.5px "+css("--mono");
+        sctx.fillText("基準 0¢",w-mR+6,y+3.5);
+      }
+    });
+  }
+
+  function renderInfo(){
+    const b=beatInfo();
+    if(state.mode==="scope"){
+      const r=effRatio(),cents=1200*Math.log2(r);
+      $("info").innerHTML=
+        `<div class="ilabel">${state.label}${state.detune?` (${state.detune>0?"+":""}${state.detune}¢)`:""}</div>`+
+        `<div class="istat"><span>周波数比</span><b>${r.toFixed(4)}</b></div>`+
+        `<div class="istat"><span>音程</span><b>${cents.toFixed(1)} cent</b></div>`+
+        `<div class="istat"><span>基準A / 上音</span><b>${A_HZ} / ${(r*A_HZ).toFixed(1)} Hz</b></div>`+
+        `<div class="ibeat">${(state.detune!==0&&b&&b.hz>0.03)?`▲ うなり ≈ ${b.hz.toFixed(1)} Hz（${b.i}f が脈打つ）`:""}</div>`;
+      return;
+    }
+    // tune mode: 4弦テーブル + うなり
+    const p=PAIRS[state.pair];
+    let rows="";
+    [3,2,1,0].forEach(si=>{const s=STRINGS[si],dev=devCents(s),sel=(si===p.lo||si===p.hi);
+      rows+=`<tr class="${sel?"sel":""}"><td>${s.name}${s.n===0?" (基準)":""}</td>`+
+        `<td>${pureHz(s).toFixed(1)}</td><td>${etHz(s).toFixed(1)}</td>`+
+        `<td class="${s.n===0?"zero":"dev"}">${s.n===0?"0":(dev>0?"+":"")+dev.toFixed(2)}</td></tr>`;});
+    const beatTxt = state.temper==="et"
+      ? (b?`平均律の${p.label}: ▲ うなり ≈ ${b.hz.toFixed(1)} Hz（${b.i}f）`:"")
+      : (state.detune===0
+         ? `純正${p.label}: うなり無し（合致）`
+         : (b&&b.hz>0.03
+            ? `▲ うなり ≈ ${b.hz.toFixed(1)} Hz → 0で合致`
+            : `▲ 大きくズレています（共有倍音のうなり帯域外）`));
+    $("info").innerHTML=
+      `<div class="ilabel">${p.label}を${state.temper==="just"?"純正五度":"平均律"}で</div>`+
+      `<table class="stbl"><tr><th>弦</th><th>純正Hz</th><th>平均律Hz</th><th>ズレ¢</th></tr>${rows}</table>`+
+      `<div class="ibeat">${beatTxt}</div>`;
+  }
+
+  function updateHint(){
+    $("hint").innerHTML = state.mode==="tune"
+      ? `<b>純正五度</b>=うなり0で調弦　→　G/D がピアノ(<b>平均律</b>)から数¢ずれる`
+      : `<b>完全5度</b>=五度調弦　<b>オクターブ</b>=入れ子　<b>5:4</b>=ニアミス`;
+    $("waveCap").textContent = state.mode==="tune"
+      ? "時間領域 — 選んだ2弦の合成波（スパンを1000ms付近まで伸ばすと包絡線=うなり1周期が見える）"
+      : "時間領域 — 合成波 y(t) = Σ 下音倍音 + Σ 上音倍音";
+    $("specCap").textContent = state.mode==="tune"
+      ? "平均律（0線）からの純正五度チェーンのズレ [cent]"
+      : "周波数領域 — 各部分音の位置と強さ（重なり＝一致）";
+    $("detLbl").textContent = state.mode==="tune" ? STRINGS[targetIdx()].name+"弦デチューン" : "デチューン";
+  }
+
+  function buildRuler(){
+    const R=$("ruler");if(!R)return;
+    const pos=c=>(clampC(c)+60)/120*100;let h="";
+    [-60,-40,-20,0,20,40,60].forEach(c=>h+=`<span class="tk${c===0?" z":""}" style="left:${pos(c)}%"></span>`);
+    [-60,0,60].forEach(c=>h+=`<span class="tl" style="left:${pos(c)}%">${c>0?"+":""}${c}</span>`);
+    if(state.mode==="tune"){
+      const m=tuneMarks();
+      h+=`<span class="mk zb" style="left:${pos(m.zb)}%"></span><span class="mkl zb" style="left:${pos(m.zb)}%">うなり0</span>`;
+      if(Math.abs(m.et-m.zb)>0.25)
+        h+=`<span class="mk et" style="left:${pos(m.et)}%"></span><span class="mkl et" style="left:${pos(m.et)}%">平均律</span>`;
+    }
+    R.innerHTML=h;
+  }
+
+  function redraw(){
+    envTab=null;
+    updateHint();buildRuler();
+    if(state.live)startLive();else drawWave();
+    if(state.mode==="tune")drawTuneMap();else drawSpec();
+    renderInfo();if(state.playing)updateAudio();
+  }
+
+  // audio
+  let ac=null,oscs=[],master=null,audioStart=0;
+  let animRAF=null,animT0=null,envTab=null;   // うなりアニメ
+  function buildAudio(){
+    stopNodes(true);if(!ac)return;
+    master=ac.createGain();master.gain.value=0;master.connect(ac.destination);
+    master.gain.linearRampToValueAtTime(0.16,ac.currentTime+0.03);
+    audioStart=ac.currentTime;
+    for(const p of partials()){const o=ac.createOscillator(),g=ac.createGain();
+      o.type="sine";o.frequency.value=p.f;g.gain.value=p.a*0.14;o.connect(g);g.connect(master);o.start();oscs.push({o,g});}
+  }
+  // param 変更中の再生: 構造同一なら osc を殺さず周波数/音量を滑らかに更新 (zipper 防止)
+  function updateAudio(){
+    if(!ac||!master)return buildAudio();
+    const ps=partials();
+    if(oscs.length!==ps.length)return buildAudio();
+    const t=ac.currentTime;
+    ps.forEach((pt,i)=>{oscs[i].o.frequency.setTargetAtTime(pt.f,t,0.015);
+      oscs[i].g.gain.setTargetAtTime(pt.a*0.14,t,0.02);});
+  }
+  function stopNodes(fade){
+    if(master&&ac){const m=master,os=oscs,t=ac.currentTime;
+      try{m.gain.cancelScheduledValues(t);m.gain.setValueAtTime(m.gain.value,t);
+        m.gain.linearRampToValueAtTime(0.0001,t+(fade?0.05:0.015));}catch(e){}
+      setTimeout(()=>{os.forEach(n=>{try{n.o.stop();n.o.disconnect();n.g.disconnect();}catch(e){}});
+        try{m.disconnect();}catch(e){}},100);
+    }
+    oscs=[];master=null;}
+  function togglePlay(){const b=$("play");
+    if(state.playing){state.playing=false;b.classList.remove("on");b.setAttribute("aria-pressed","false");
+      b.textContent="▶ 鳴らす";stopNodes();return;}
+    if(!ac)ac=new (window.AudioContext||window.webkitAudioContext)();
+    if(ac.state==="suspended")ac.resume();
+    state.playing=true;b.classList.add("on");b.setAttribute("aria-pressed","true");b.textContent="■ 停止";buildAudio();
+    if(state.live&&animT0==null)animT0=performance.now();}
+
+  // うなりアニメ: 音量包絡線を1拍ぶん計算 → 実時間で横スクロール
+  function computeEnv(){
+    const ps=partials(),b=beatInfo();let norm=0;ps.forEach(p=>norm+=p.a);
+    // ピーク窓は「基音(最低部分音)1周期」= 定常音は必ず一定に読める（短すぎると偽の脈が出る）
+    const fHi=ps.reduce((m,p)=>Math.max(m,p.f),1),fLo=ps.reduce((m,p)=>Math.min(m,p.f),1e9);
+    const win=1/fLo,sub=Math.max(32,Math.ceil(win*fHi*3));
+    const sig=t=>{let y=0;for(const p of ps)y+=p.a*Math.cos(TAU*p.f*t);return y;};
+    const peak=t0=>{let mx=0;for(let k=0;k<=sub;k++){const a=Math.abs(sig(t0+win*k/sub));if(a>mx)mx=a;}return mx;};
+    const hz=(b&&b.hz>0.05)?b.hz:0,P=hz?1/hz:1,M=hz?Math.max(240,Math.min(1400,Math.round(P*1400))):2;
+    const E=new Float32Array(M+1);let mn=1e9,mx=0;
+    for(let i=0;i<=M;i++){const v=peak(P*i/M)/norm;E[i]=v;if(v<mn)mn=v;if(v>mx)mx=v;}
+    return {P,M,E,hz,mn,mx};
+  }
+  function clockT(){return (state.playing&&ac)?(ac.currentTime-audioStart):(performance.now()-(animT0||=performance.now()))/1000;}
+  function drawLive(tNow){
+    const d=fit(wave,wctx);if(!d)return;const {w,h}=d;
+    wctx.clearRect(0,0,w,h);
+    const et=envTab||(envTab=computeEnv()),P=et.P;
+    const Tvis=et.hz?Math.min(6,Math.max(1.6,2.6*P)):3,baseY=h-16,ampY=h-46;
+    const spanE=et.mx-et.mn, hasBeat=spanE>0.02;
+    const disp=L=>hasBeat?0.08+0.92*(L-et.mn)/spanE:0.82;
+    const raw=t=>{const ph=((t%P)+P)%P;return et.E[Math.min(et.M,Math.floor(ph/P*et.M))];};
+    // baseline
+    wctx.strokeStyle=css("--axis");wctx.lineWidth=1;wctx.beginPath();wctx.moveTo(0,baseY);wctx.lineTo(w,baseY);wctx.stroke();
+    // beat-period gridlines
+    if(et.hz){wctx.strokeStyle=css("--grid");
+      for(let k=0;;k++){const tg=Math.floor((tNow)/P)*P-k*P;const x=w*(1-(tNow-tg)/Tvis);if(x<0)break;
+        wctx.beginPath();wctx.moveTo(x,10);wctx.lineTo(x,baseY);wctx.stroke();}}
+    // filled loudness
+    wctx.fillStyle=css("--rose");wctx.globalAlpha=.16;wctx.beginPath();wctx.moveTo(0,baseY);
+    for(let x=0;x<=w;x++){const t=tNow-Tvis*(1-x/w);wctx.lineTo(x,baseY-disp(raw(t))*ampY);}
+    wctx.lineTo(w,baseY);wctx.closePath();wctx.fill();wctx.globalAlpha=1;
+    wctx.strokeStyle=css("--rose");wctx.lineWidth=2.2;wctx.beginPath();
+    for(let x=0;x<=w;x++){const t=tNow-Tvis*(1-x/w),y=baseY-disp(raw(t))*ampY;x?wctx.lineTo(x,y):wctx.moveTo(0,y);}
+    wctx.stroke();
+    // playhead (=今) + 現在音量ドット
+    wctx.strokeStyle=css("--amber");wctx.lineWidth=1.5;wctx.beginPath();wctx.moveTo(w-1,8);wctx.lineTo(w-1,baseY);wctx.stroke();
+    wctx.fillStyle=css("--amber");wctx.beginPath();wctx.arc(w-1,baseY-disp(raw(tNow))*ampY,4.5,0,TAU);wctx.fill();
+    // labels
+    wctx.fillStyle=css("--ink");wctx.font="600 13px "+css("--mono");wctx.textAlign="left";
+    wctx.fillText(et.hz?`音量が ${et.hz.toFixed(2)} Hz で脈動 ＝ うなり（周期 ${(1000/et.hz).toFixed(0)} ms）`
+      :"うなり無し ＝ 音量一定（純正で合致）",10,22);
+    wctx.fillStyle=css("--faint");wctx.font="10px "+css("--mono");
+    wctx.fillText("← 過去",6,baseY+12);wctx.textAlign="right";wctx.fillText("今",w-6,baseY+12);
+    if(!state.playing){wctx.fillStyle=css("--muted");wctx.textAlign="center";
+      wctx.fillText("▶ 鳴らすと 目の脈と耳のワウが一致する",w/2,baseY+12);}
+  }
+  function tick(){if(!state.live){animRAF=null;return;}drawLive(clockT());animRAF=requestAnimationFrame(tick);}
+  function startLive(){if(!animRAF)animRAF=requestAnimationFrame(tick);}
+
+  function setMode(m){state.mode=m;app.setAttribute("data-mode",m);
+    $("m_scope").setAttribute("aria-pressed",m==="scope");$("m_tune").setAttribute("aria-pressed",m==="tune");redraw();}
+
+  // build chips
+  const pc=$("presets");
+  PRESETS.forEach(p=>{const b=document.createElement("button");b.className="chip";b.textContent=p.label;
+    b.setAttribute("aria-pressed",p.r===state.ratio);
+    b.onclick=()=>{state.ratio=p.r;state.label=p.label;
+      [...pc.children].forEach(c=>c.setAttribute("aria-pressed","false"));b.setAttribute("aria-pressed","true");redraw();};
+    pc.appendChild(b);});
+  const pr=$("pairs");
+  PAIRS.forEach((p,i)=>{const b=document.createElement("button");b.className="chip cy";b.textContent=p.label;
+    b.setAttribute("aria-pressed",i===state.pair);
+    b.onclick=()=>{state.pair=i;[...pr.children].forEach(c=>c.setAttribute("aria-pressed","false"));
+      b.setAttribute("aria-pressed","true");redraw();};pr.appendChild(b);});
+
+  $("m_scope").onclick=()=>setMode("scope");
+  $("m_tune").onclick=()=>setMode("tune");
+  $("t_just").onclick=()=>{state.temper="just";$("t_just").setAttribute("aria-pressed","true");
+    $("t_et").setAttribute("aria-pressed","false");redraw();};
+  $("t_et").onclick=()=>{state.temper="et";$("t_et").setAttribute("aria-pressed","true");
+    $("t_just").setAttribute("aria-pressed","false");redraw();};
+  $("detune").oninput=e=>{state.detune=+e.target.value;$("dv").textContent=(state.detune>=0?"+":"")+state.detune+" cent";redraw();};
+  $("harm").oninput=e=>{state.harm=+e.target.value;$("hv").textContent=state.harm;redraw();};
+  $("span").oninput=e=>{state.span=+e.target.value;$("sv").textContent=state.span+" ms";drawWave();};
+  $("play").onclick=togglePlay;
+  $("comp").onclick=e=>{state.showComp=!state.showComp;e.target.setAttribute("aria-pressed",state.showComp);
+    if(!state.live)drawWave();};
+  $("live").onclick=e=>{state.live=!state.live;e.target.setAttribute("aria-pressed",state.live);
+    if(state.live){envTab=null;animT0=performance.now();startLive();}
+    else{if(animRAF)cancelAnimationFrame(animRAF);animRAF=null;drawWave();}};
+
+  new ResizeObserver(()=>{updateHint();buildRuler();
+    if(state.live)startLive();else drawWave();
+    if(state.mode==="tune")drawTuneMap();else drawSpec();renderInfo();}).observe(app);
+  const mq=window.matchMedia("(prefers-color-scheme:dark)");mq.addEventListener&&mq.addEventListener("change",redraw);
+  new MutationObserver(()=>redraw()).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+  requestAnimationFrame(()=>requestAnimationFrame(redraw));
+})();
+</script>

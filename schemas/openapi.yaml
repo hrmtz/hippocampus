@@ -1,0 +1,294 @@
+openapi: "3.1.0"
+info:
+  title: Hippocampus Personal Memory
+  description: |
+    Search and retrieve personal conversation history across Claude Code, Codex,
+    ChatGPT, Claude.ai. Semantic search powered by
+    BGE-M3 embeddings stored in pgvector.
+  version: "1.0.0"
+servers:
+  - url: http://localhost:8091
+
+paths:
+  /api/search:
+    get:
+      operationId: searchMemory
+      summary: Semantic search across all conversation history
+      description: |
+        Vector similarity search over all ingested messages. Returns the most
+        semantically relevant message snippets with their conversation metadata.
+        Use this to answer "when did I discuss X?" or "what did I learn about Y?"
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Natural language search query
+          schema:
+            type: string
+            minLength: 1
+        - name: top_k
+          in: query
+          required: false
+          description: Number of results to return (default 10, max 50)
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 50
+      responses:
+        "200":
+          description: Search results ordered by relevance
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SearchResult"
+      security:
+        - BearerAuth: []
+
+  /api/conversations/recent:
+    get:
+      operationId: listRecentConversations
+      summary: List recent conversations
+      description: |
+        Retrieve conversations from the last N days, sorted by recency.
+        Use this to review what topics were discussed recently, or to find
+        a specific conversation by platform or project context.
+      parameters:
+        - name: days
+          in: query
+          required: false
+          description: Look back this many days (default 2, max 365)
+          schema:
+            type: integer
+            default: 2
+            minimum: 1
+            maximum: 365
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of conversations to return (default 20)
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 200
+        - name: platform
+          in: query
+          required: false
+          description: Filter by platform (claude_code, codex, chatgpt, claude_ai)
+          schema:
+            type: string
+        - name: project
+          in: query
+          required: false
+          description: Filter by project name (substring match on conversation title/context)
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of recent conversations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversations:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ConversationSummary"
+      security:
+        - BearerAuth: []
+
+  /api/conversations/{conv_id}/summary:
+    get:
+      operationId: getConversationSummary
+      summary: Get a conversation summary with first and last messages
+      description: |
+        Returns metadata and a bounded sample of messages (first N/2 and last N/2)
+        from a conversation. Use this to understand what a conversation was about
+        without loading all messages. Follow up with getConversation for full content.
+      parameters:
+        - name: conv_id
+          in: path
+          required: true
+          description: Conversation ID (from search results or recent list)
+          schema:
+            type: string
+        - name: max_messages
+          in: query
+          required: false
+          description: Total messages to include, split between first and last half (default 12)
+          schema:
+            type: integer
+            default: 12
+            minimum: 2
+            maximum: 60
+      responses:
+        "200":
+          description: Conversation with sampled messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+        "404":
+          description: Conversation not found
+      security:
+        - BearerAuth: []
+
+  /api/conversations/{conv_id}:
+    get:
+      operationId: getConversation
+      summary: Get full conversation with all messages
+      description: |
+        Returns complete conversation including every message. May be large for
+        long conversations. Prefer getConversationSummary first to decide if
+        full content is needed.
+      parameters:
+        - name: conv_id
+          in: path
+          required: true
+          description: Conversation ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Full conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+        "404":
+          description: Conversation not found
+      security:
+        - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+
+  schemas:
+    SearchResult:
+      type: object
+      properties:
+        conv_id:
+          type: string
+          description: Unique conversation identifier
+        platform:
+          type: string
+          description: Source platform (claude_code, codex, chatgpt, claude_ai)
+        date:
+          type: string
+          format: date-time
+          nullable: true
+        title:
+          type: string
+          description: Conversation title
+        topic:
+          type: string
+          nullable: true
+          description: Dominant topic label
+        cluster:
+          type: string
+          nullable: true
+          description: Topic cluster label
+        score:
+          type: number
+          description: Cosine similarity score (0-1, higher is more relevant)
+        role:
+          type: string
+          description: Message role (user or assistant)
+        content:
+          type: string
+          description: Message snippet (truncated to 500 chars)
+
+    ConversationSummary:
+      type: object
+      properties:
+        conv_id:
+          type: string
+        platform:
+          type: string
+        title:
+          type: string
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        ended_at:
+          type: string
+          format: date-time
+          nullable: true
+        msg_count:
+          type: integer
+        topic:
+          type: string
+          nullable: true
+        cluster:
+          type: string
+          nullable: true
+        intensity:
+          type: number
+          nullable: true
+          description: Conversation intensity score (1-10)
+        snippet:
+          type: string
+          nullable: true
+          description: First message preview (200 chars)
+
+    Conversation:
+      type: object
+      properties:
+        conv_id:
+          type: string
+        platform:
+          type: string
+        title:
+          type: string
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        ended_at:
+          type: string
+          format: date-time
+          nullable: true
+        msg_count:
+          type: integer
+        topic:
+          type: string
+          nullable: true
+        cluster:
+          type: string
+          nullable: true
+        intensity:
+          type: number
+          nullable: true
+        ai_engagement:
+          type: number
+          nullable: true
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/Message"
+
+    Message:
+      type: object
+      properties:
+        role:
+          type: string
+          description: user or assistant
+        content:
+          type: string
+        ts:
+          type: string
+          format: date-time
+          nullable: true
+        seq:
+          type: integer

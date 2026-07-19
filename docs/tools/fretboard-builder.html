@@ -1,0 +1,724 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>指板ビルダー — ルート×3rd×5rd×継ぎ目で和音を建てる</title>
+<style>
+  :root{
+    --bg:#0d1016; --panel:#141a25; --panel2:#1a2130; --line:#283245;
+    --ink:#e9edf4; --muted:#8b97ab; --faint:#5c6577;
+    --amber:#ffb454;
+    /* fretboard palette (ported from fretboard.py COLOR, themed as CSS vars) */
+    --root:#8b7dff; --peak:#54cf74; --consonant:#3f9e5a; --dissonant:#e0664a;
+    --edge:#ff5a4d; --ghost:#83be83;
+    --overlay:#ffb454; --overlay-fill:rgba(255,180,84,.05);
+    --seam:rgba(255,180,84,.17);
+    --grid:rgba(255,255,255,.06); --stringln:rgba(255,255,255,.16);
+    --hover:rgba(255,255,255,.08); --rootcol:rgba(255,180,84,.06);
+    --dotink:#0d1016;
+    --shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 10px 26px -18px rgba(0,0,0,.7);
+    --mono:ui-monospace,"SF Mono",Menlo,"Cascadia Mono",monospace;
+    --sans:system-ui,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  }
+  @media (prefers-color-scheme: light){
+    :root{--bg:#eef0f3;--panel:#fff;--panel2:#f4f6f9;--line:#dfe4ec;--ink:#1b2230;--muted:#5c6577;--faint:#8a94a4;
+      --amber:#b96e12;
+      --root:#5b48d6;--peak:#2f9a45;--consonant:#2f8a4d;--dissonant:#c6462b;
+      --edge:#d23423;--ghost:#3f8f3f;
+      --overlay:#b96e12;--overlay-fill:rgba(185,110,18,.07);
+      --seam:rgba(185,110,18,.15);
+      --grid:rgba(20,30,50,.07);--stringln:rgba(20,30,50,.2);
+      --hover:rgba(20,30,50,.06);--rootcol:rgba(185,110,18,.07);
+      --dotink:#fff;
+      --shadow:0 1px 0 rgba(255,255,255,.7) inset,0 10px 24px -20px rgba(20,30,60,.4);}
+  }
+  :root[data-theme="dark"]{--bg:#0d1016;--panel:#141a25;--panel2:#1a2130;--line:#283245;--ink:#e9edf4;--muted:#8b97ab;--faint:#5c6577;
+    --amber:#ffb454;--root:#8b7dff;--peak:#54cf74;--consonant:#3f9e5a;--dissonant:#e0664a;--edge:#ff5a4d;--ghost:#83be83;
+    --overlay:#ffb454;--overlay-fill:rgba(255,180,84,.05);--seam:rgba(255,180,84,.17);
+    --grid:rgba(255,255,255,.06);--stringln:rgba(255,255,255,.16);--hover:rgba(255,255,255,.08);--rootcol:rgba(255,180,84,.06);--dotink:#0d1016;}
+  :root[data-theme="light"]{--bg:#eef0f3;--panel:#fff;--panel2:#f4f6f9;--line:#dfe4ec;--ink:#1b2230;--muted:#5c6577;--faint:#8a94a4;
+    --amber:#b96e12;--root:#5b48d6;--peak:#2f9a45;--consonant:#2f8a4d;--dissonant:#c6462b;--edge:#d23423;--ghost:#3f8f3f;
+    --overlay:#b96e12;--overlay-fill:rgba(185,110,18,.07);--seam:rgba(185,110,18,.15);
+    --grid:rgba(20,30,50,.07);--stringln:rgba(20,30,50,.2);--hover:rgba(20,30,50,.06);--rootcol:rgba(185,110,18,.07);--dotink:#fff;}
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.5}
+  .app{max-width:1100px;margin:0 auto;padding:14px clamp(12px,2.2vw,22px) 40px}
+  header.bar{display:flex;align-items:baseline;gap:8px 14px;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--line)}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);font-weight:600}
+  h1{font-size:clamp(1.02rem,2.4vw,1.4rem);margin:0;font-weight:660;letter-spacing:-.01em}
+  /* controls-first: this panel sits ABOVE the fretboard and is reachable without scrolling */
+  .controls{position:sticky;top:0;z-index:5;background:var(--bg);
+    padding:8px 0 8px;border-bottom:1px solid var(--line);margin-bottom:9px}
+  .grp{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:3px 0}
+  .gtitle{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);
+    min-width:74px}
+  .chip{font-family:var(--mono);font-size:12.5px;padding:6px 12px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--muted);cursor:pointer;transition:.13s;min-height:34px}
+  .chip:hover{border-color:var(--amber);color:var(--ink)}
+  .chip[aria-pressed="true"]{background:var(--amber);border-color:var(--amber);color:var(--dotink);font-weight:600}
+  .chordline{font-family:var(--mono);font-size:13px;color:var(--muted);margin:5px 0 2px;display:flex;gap:6px 16px;flex-wrap:wrap;align-items:baseline}
+  .chordline .name{font-size:16px;font-weight:700;color:var(--ink)}
+  .chordline .name b{color:var(--amber)}
+  .chordline .tt{color:var(--edge);font-weight:600}
+  .hint{font-family:var(--mono);font-size:11.5px;color:var(--faint)}
+  .cap{font-family:var(--mono);font-size:12px;color:var(--muted);margin:10px 2px 6px;line-height:1.55}
+  .cap b{color:var(--ink)}
+  .seam-grp{display:none}
+  .caged-grp{display:none}
+  .chip:disabled{opacity:.4;cursor:not-allowed}
+  .chip:disabled:hover{border-color:var(--line);color:var(--muted)}
+  .seamnote{font-family:var(--mono);font-size:11px;color:var(--faint)}
+  .cell-readout{font-family:var(--mono);font-size:13px;color:var(--muted);margin:2px 2px 8px;min-height:21px;
+    border-left:3px solid var(--amber);padding-left:9px}
+  .cell-readout b{color:var(--ink)} .cell-readout .pc{color:var(--amber)}
+  .boardwrap{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
+    border:1px solid var(--line);border-radius:12px;background:var(--panel);box-shadow:var(--shadow);padding:6px}
+  svg.board{display:block}
+  .legend{display:flex;gap:12px 16px;flex-wrap:wrap;font-family:var(--mono);font-size:11.5px;color:var(--muted);margin:12px 2px 0}
+  .legend i{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-2px;margin-right:5px}
+  .legend i.sq{border-radius:2px}
+  /* svg cell classes */
+  .string-line{stroke:var(--stringln)}
+  .grid-line{stroke:var(--grid)}
+  .rootcol{fill:var(--rootcol)}
+  .seam-band{fill:var(--seam)}
+  .overlay-rect{fill:var(--overlay-fill);stroke:var(--overlay);stroke-width:2.5;stroke-dasharray:7 4}
+  .overlay-lab{fill:var(--overlay);font-family:var(--mono);font-weight:700}
+  .fretlab{fill:var(--faint);font-family:var(--mono)}
+  .dot-root{fill:var(--root)} .dot-peak{fill:var(--peak)}
+  .dot-cons{fill:var(--consonant)} .dot-diss{fill:var(--dissonant)}
+  .dot-ring{fill:none;stroke:var(--amber);stroke-width:2.6}
+  .lbl{fill:#fff;font-family:var(--mono);font-weight:700;text-anchor:middle;pointer-events:none}
+  .iv-faint{fill:var(--faint);font-family:var(--mono);text-anchor:middle;pointer-events:none;opacity:.7}
+  .ghost{fill:none;stroke:var(--ghost);stroke-width:1.7;stroke-dasharray:3 2}
+  .ghost-lab{fill:var(--ghost);font-family:var(--mono);text-anchor:middle;pointer-events:none}
+  .caged-hull{fill:var(--overlay-fill);stroke:var(--overlay);stroke-width:3;opacity:.9}
+  .caged-cell{fill:none;stroke:var(--overlay);stroke-width:3.4}
+  .caged-lab{fill:var(--overlay);font-family:var(--mono);font-weight:700}
+  .tt-edge{stroke:var(--edge);stroke-width:3;stroke-linecap:round}
+  .tt-lab{fill:var(--edge);font-family:var(--mono);font-weight:700;text-anchor:middle}
+  .hit{fill:transparent;cursor:pointer;outline:none}
+  .hit:hover{fill:var(--hover)}
+  .hit:focus-visible{stroke:var(--amber);stroke-width:3}
+  /* mobile: controls (esp. guitar mode w/ seam+CAGED rows) eat the viewport so
+     the board scrolls off-screen. Compact the panel, drop it out of sticky, and
+     hide prose caption / legend / seam-note so the fretboard enters the first
+     screen. Chip min-height stays 40px → tap targets preserved. */
+  @media (max-width:640px){
+    .app{padding-top:8px}
+    h1{font-size:1.02rem}
+    .controls{position:static;padding:8px 0 8px;margin-bottom:8px}
+    .grp{margin:3px 0;gap:5px}
+    .gtitle{min-width:0;font-size:9.5px}
+    .chip{padding:8px 10px;font-size:12px;min-height:40px}  /* re-assert touch target (base is now 34 for desktop mouse) */
+    .chordline{margin:5px 0 2px;font-size:12px;gap:5px 12px}
+    .hint{display:none}       /* click-instruction + pc breakdown — the readout box below already explains interaction */
+    .cell-readout{font-size:12px;margin:2px 2px 6px}
+    .cap{display:none}        /* mode prose — read it on the linked wiki page */
+    .legend{display:none}     /* dots are self-labelled R/3/5 on the board */
+    .seamnote{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="app">
+  <header class="bar">
+    <span class="eyebrow">Fretboard Builder</span>
+    <h1>指板ビルダー — 和音を「建てる」</h1>
+  </header>
+
+  <section class="controls" aria-label="コントロール">
+    <div class="grp" role="group" aria-label="モード">
+      <span class="gtitle">モード</span>
+      <button class="chip" data-mode="plane" aria-pressed="true">無限平面</button>
+      <button class="chip" data-mode="crop"  aria-pressed="false">6弦(全4度)</button>
+      <button class="chip" data-mode="guitar" aria-pressed="false">標準ギター</button>
+    </div>
+    <div class="grp seam-grp" role="group" aria-label="継ぎ目位置（標準ギター）">
+      <span class="gtitle">継ぎ目</span>
+      <button class="chip" data-seam="1" aria-pressed="false">1</button>
+      <button class="chip" data-seam="2" aria-pressed="false">2</button>
+      <button class="chip" data-seam="3" aria-pressed="false">3</button>
+      <button class="chip" data-seam="4" aria-pressed="true">4</button>
+      <button class="chip" data-seam="5" aria-pressed="false">5</button>
+      <span class="seamnote">= 長3度の段の位置（標準ギター=4＝G–B）。動かして押さえやすさの変化を見る</span>
+    </div>
+    <div class="grp" role="group" aria-label="3度">
+      <span class="gtitle">3rd</span>
+      <button class="chip" data-third="3" aria-pressed="false">m3 (短3度)</button>
+      <button class="chip" data-third="4" aria-pressed="true">M3 (長3度)</button>
+    </div>
+    <div class="grp" role="group" aria-label="5度">
+      <span class="gtitle">5th</span>
+      <button class="chip" data-fifth="6" aria-pressed="false">♭5 (減5度)</button>
+      <button class="chip" data-fifth="7" aria-pressed="true">P5 (完全5度)</button>
+      <button class="chip" data-fifth="8" aria-pressed="false">♯5 (増5度)</button>
+    </div>
+    <div class="grp" role="group" aria-label="音程表示">
+      <span class="gtitle">音程</span>
+      <button class="chip" id="toggleIntervals" aria-pressed="false">全セルに薄く常時表示</button>
+    </div>
+    <div class="grp caged-grp" role="group" aria-label="CAGED 5形（標準ギター・メジャー三和音）">
+      <span class="gtitle">CAGED</span>
+      <button class="chip" data-caged="0" aria-pressed="false">C形</button>
+      <button class="chip" data-caged="1" aria-pressed="false">A形</button>
+      <button class="chip" data-caged="2" aria-pressed="false">G形</button>
+      <button class="chip" data-caged="3" aria-pressed="false">E形</button>
+      <button class="chip" data-caged="4" aria-pressed="false">D形</button>
+      <button class="chip" id="cagedNext">▶ 次の形</button>
+      <button class="chip" id="cagedAll" aria-pressed="false">◇ 5形パズル</button>
+      <button class="chip" id="houndstooth" aria-pressed="false">▦ 千鳥タイル</button>
+      <button class="chip" id="cagedOff">解除</button>
+      <span class="seamnote" id="cagedNote"></span>
+    </div>
+    <div class="chordline">
+      <span class="name" id="chordName"></span>
+      <span id="chordPcs"></span>
+      <span class="tt" id="chordTt"></span>
+    </div>
+    <div class="hint">クリック=ここをルート。度数ラベル(R/♭3/3/5)は移調しても不変 — 形だけ動く。</div>
+  </section>
+
+  <div class="boardwrap" id="boardwrap">
+    <svg class="board" id="board" role="group" aria-label="指板"></svg>
+  </div>
+
+  <div class="cell-readout" id="cellReadout" aria-live="polite">セルにカーソル / フォーカス → ルートからの音程を表示（継ぎ目でズレた指が何の音になるか）。</div>
+  <p class="cap" id="modeCap"></p>
+  <div class="legend">
+    <span><i class="dot-root" style="background:var(--root)"></i>R (ルート)</span>
+    <span><i style="background:var(--consonant)"></i>3rd (m3/M3)</span>
+    <span><i style="background:var(--peak)"></i>P5</span>
+    <span><i style="background:var(--dissonant)"></i>♭5 / ♯5</span>
+    <span><i class="sq" style="background:var(--edge)"></i>トライトーン辺</span>
+    <span><i class="sq" style="background:var(--overlay)"></i>6弦クロップ</span>
+    <span><i style="border:1.5px dashed var(--ghost);background:none"></i>継ぎ目前ゴースト(+1)</span>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---- ported constants (fretboard.py / chord_atlas_fret.py) --------------- */
+  // I2 (generalised, phase-2): the seam is ONE non-accumulating -1 at a MOVABLE
+  // string boundary. Instrument abs strings 0=E 1=A 2=D 3=G 4=B 5=e; the real
+  // guitar seam is the G->B step, so the default index = 4. state.seam ∈ 1..5
+  // slides it, so the reader can feel why real guitars park it at G-B.
+  const SEAM_DEFAULT = 4;
+  // I1: positive modulo. JS `%` returns negatives; negative-fret window + seam -1
+  // push (open_pc+f) negative, so a bare `%` silently drops matches.
+  const posmod = (x, m) => (((x % m) + m) % m);
+
+  // chordDegreeLabel (chord_atlas_fret.py idiom): R / ♭3 / 3 / ♭5 / 5 / ♯5 ...
+  // Used on member DOTS. Never mix with intervalClassLabel.
+  const DEGREE = {0:"R",3:"♭3",4:"3",6:"♭5",7:"5",8:"♯5",10:"♭7",11:"7"};
+  function chordDegreeLabel(pc){ return DEGREE[pc] || String(pc); }
+  // intervalClassLabel (fretboard.py INTERVAL_LABEL) — the interval-map idiom,
+  // used only in control captions (m3/M3/P5), NOT on dots.
+  const INTERVAL = {0:"8",1:"m2",2:"M2",3:"m3",4:"M3",5:"P4",6:"TT",7:"P5",8:"m6",9:"M6",10:"m7",11:"M7"};
+  function intervalClassLabel(pc){ return INTERVAL[posmod(pc,12)]; }
+
+  // consonance class -> palette class (fretboard.py consonance_color, themed)
+  const DISSONANT = new Set([1,6,11]);   // m2, TT, M7
+  function dotClass(pc){
+    pc = posmod(pc,12);
+    if(pc === 0) return "dot-root";
+    if(pc === 7) return "dot-peak";       // P5
+    if(DISSONANT.has(pc)) return "dot-diss";
+    return "dot-cons";
+  }
+
+  /* ---- state -------------------------------------------------------------- */
+  // I5/I6: root_cell {string,fret} is the fret-plane anchor; root_abs is pitch.
+  const state = { mode:"plane", third:4, fifth:7, root:{string:3, fret:5},
+                  seam:SEAM_DEFAULT, showIntervals:false,
+                  cagedForm:null, cagedTarget:null, cagedAll:false, houndstooth:false,
+                  view:{string:3, fret:5} };   // cagedAll = 5形パズル; houndstooth = 千鳥タイル; view = puzzle viewport anchor (decoupled from root so re-rooting visibly slides the band)
+
+  // I2/I3: seam lives ONLY in open_pc_abs; member() is identical across modes.
+  function openPcAbs(s){
+    let base = 5*s;
+    if(state.mode === "guitar" && s >= state.seam) base -= 1;   // single -1, non-accumulating, movable
+    return base;
+  }
+  function rootAbs(){ return openPcAbs(state.root.string) + state.root.fret; } // I5
+  // When the CAGED puzzle is engaged, the chord reference is the puzzle's target
+  // pc — DECOUPLED from the viewport root — so the dots (chord tones) and the
+  // pieces (placed from cagedTarget) stay in sync no matter where the viewport is
+  // framed. Without this, framing the viewport to a non-root cell desyncs them
+  // (pieces land off the dots unless the root happens to sit on a target-pc cell).
+  function refAbs(){
+    return (state.cagedAll && isMajorTriad() && state.cagedTarget !== null)
+      ? state.cagedTarget : rootAbs();
+  }
+  function chordPcs(){ return [0, state.third, state.fifth]; }
+  // I1: membership, positive modulo, chord-reference absolute axis.
+  function member(s, f){ return chordPcs().indexOf(posmod(openPcAbs(s)+f-refAbs(), 12)) >= 0; }
+  function pcAt(s, f){ return posmod(openPcAbs(s)+f-refAbs(), 12); }
+
+  // tritone edges are a property of the SET chord_pcs, mode-independent.
+  function tritonePairs(){
+    const pcs = chordPcs(), out = [];
+    for(let i=0;i<pcs.length;i++) for(let j=i+1;j<pcs.length;j++)
+      if(posmod(pcs[i]-pcs[j],12) === 6) out.push([pcs[i],pcs[j]]);
+    return out;
+  }
+
+  const CHORD_NAMES = {"4_7":["メジャー","major"], "3_7":["マイナー","minor"],
+                       "3_6":["ディミニッシュ","dim"], "4_8":["オーギュメント","aug"]};
+
+  /* ---- CAGED (phase-3) — derived from ground-truth OPEN major chords -------- *
+   * Abs string idx 0=E 1=A 2=D 3=G 4=B 5=e ; pitch axis E=0 (E,F,F#,...=0,1,2..).
+   * open_pc_abs (seam=4): [0,5,10,15,19,24]. Each form is a REAL open fingering;
+   * a barre chord = that open shape shifted uniformly by `shift` frets (= a capo),
+   * which transposes every pitch by `shift` and preserves the shape + degrees.
+   *   C = x32010  A = x02220  G = 320003  E = 022100  D = xx0232
+   * cells [absString, openFret, degree]; every cell verified R/3/5 of its named
+   * major chord. openRootPc = pc(E=0) of the chord root. anchor = lowest-fret
+   * root cell, used to centre the viewport so the whole grip stays on screen.  */
+  const CAGED = [
+    {L:"C", openRootPc:8,  anchor:[4,1], cells:[[1,3,"R"],[2,2,"3"],[3,0,"5"],[4,1,"R"],[5,0,"3"]]},
+    {L:"A", openRootPc:5,  anchor:[1,0], cells:[[1,0,"R"],[2,2,"5"],[3,2,"R"],[4,2,"3"],[5,0,"5"]]},
+    {L:"G", openRootPc:3,  anchor:[3,0], cells:[[0,3,"R"],[1,2,"3"],[2,0,"5"],[3,0,"R"],[4,0,"3"],[5,3,"R"]]},
+    {L:"E", openRootPc:0,  anchor:[0,0], cells:[[0,0,"R"],[1,2,"5"],[2,2,"R"],[3,1,"3"],[4,0,"5"],[5,0,"R"]]},
+    {L:"D", openRootPc:10, anchor:[2,0], cells:[[2,0,"R"],[3,2,"5"],[4,3,"R"],[5,2,"3"]]},
+  ];
+  const isMajorTriad = () => state.third === 4 && state.fifth === 7;
+  const cagedEnabled = () => state.mode === "guitar" && isMajorTriad();
+  // Build the ascending C->A->G->E->D ladder for a target root pc. Each form's
+  // shift is normalised (+12 as needed) so the anchor frets never step backward.
+  function cagedLadder(target){
+    let running = -1; const out = [];
+    for(const F of CAGED){
+      const base = posmod(target - F.openRootPc, 12);   // 0..11 capo shift
+      let af = F.anchor[1] + base;
+      while(af < running) af += 12;                      // keep the ladder ascending
+      running = af;
+      out.push({L:F.L, anchorStr:F.anchor[0], anchorFret:af, shift:af - F.anchor[1], cells:F.cells});
+    }
+    return out;
+  }
+
+  /* ---- geometry ----------------------------------------------------------- */
+  const NROWS = 8, NCOLS = 17;          // 8 strings, R-2..R+14 (I6)
+  // Touch pointers need >=44px tap targets; a mouse doesn't — so shrink the
+  // cells on desktop to keep the whole board on one screen (no vertical scroll).
+  const COARSE = !!(window.matchMedia && window.matchMedia("(pointer:coarse)").matches);
+  const CELL_W = 50, CELL_H = COARSE ? 46 : 40;
+  const PAD_L = 34, PAD_T = 26, PAD_R = 16, PAD_B = 26;
+  const DOT_R = 18;
+  const W = PAD_L + NCOLS*CELL_W + PAD_R;
+  const H = PAD_T + NROWS*CELL_H + PAD_B;
+  // Vertical band. plane: follows the clicked root (root.string+5 .. -2).
+  // crop/guitar: instrument-anchored, fixed abs strings 6..-1 so the 6-string
+  // window (0..5) sits centred with one plane row above/below. Horizontal (fret)
+  // window still follows root.fret in all modes (I6).
+  // In the CAGED puzzle the viewport is anchored by state.view (NOT the root), so
+  // re-rooting slides the band across a stable frame instead of the view chasing
+  // the root (which would look static). view pans only when the root exits it.
+  const _pz = () => state.cagedAll && state.third===4 && state.fifth===7 && state.cagedTarget!==null;
+  const topString = () => state.mode === "plane" ? (_pz() ? state.view.string + 4 : state.root.string + 5) : 6;
+  const fMin = () => _pz() ? state.view.fret - 8 : state.root.fret - 2;
+  const rowOf = (s) => topString() - s;                 // 0..7 if visible
+  const colOf = (f) => f - fMin();                       // 0..16 if visible
+  const cx = (c) => PAD_L + c*CELL_W + CELL_W/2;
+  const cy = (r) => PAD_T + r*CELL_H + CELL_H/2;
+
+  const $ = id => document.getElementById(id);
+  const board = $("board");
+
+  function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+  function render(){
+    const parts = [];
+    const showOverlay = state.mode !== "plane";
+    const showSeam    = state.mode === "guitar";
+    const rAbs = refAbs();                 // chord reference (= cagedTarget when the puzzle is on)
+    const pcs = chordPcs();
+    const tS = topString(), fLo = fMin();
+    const cagedPuzzle = state.cagedAll && isMajorTriad() && state.cagedTarget !== null;
+
+    // background: root column highlight (suppressed in puzzle view — root is just
+    // the viewport anchor there, not a musical focus)
+    const rootCol = colOf(state.root.fret);
+    if(rootCol >= 0 && rootCol < NCOLS && !cagedPuzzle)
+      parts.push(`<rect class="rootcol" x="${PAD_L+rootCol*CELL_W}" y="${PAD_T}" width="${CELL_W}" height="${NROWS*CELL_H}"/>`);
+
+    // 6-string instrument overlay (crop + guitar): abs strings 0..5
+    if(showOverlay){
+      const rTop = rowOf(5), rBot = rowOf(0);            // 5=e (top), 0=E (bottom)
+      const visTop = Math.max(0, Math.min(rTop, rBot));
+      const visBot = Math.min(NROWS-1, Math.max(rTop, rBot));
+      if(visTop <= visBot){
+        const y = PAD_T + visTop*CELL_H, h = (visBot-visTop+1)*CELL_H;
+        parts.push(`<rect class="overlay-rect" x="${PAD_L-4}" y="${y+3}" width="${NCOLS*CELL_W+8}" height="${h-6}" rx="9"/>`);
+        parts.push(`<text class="overlay-lab" x="${W-PAD_R-6}" y="${y-3}" font-size="11" text-anchor="end">6弦ギター（この窓が実機）</text>`);
+      }
+    }
+
+    // seam band (guitar): the gap between abs string (seam-1) and (seam) — movable
+    if(showSeam){
+      const sa = state.seam;
+      const rLo = rowOf(sa-1), rHi = rowOf(sa);          // lower string larger r, upper smaller r
+      if(rHi>=-1 && rLo<=NROWS){
+        const yGap = (cy(rLo) + cy(rHi))/2;
+        parts.push(`<rect class="seam-band" x="${PAD_L-4}" y="${yGap-13}" width="${NCOLS*CELL_W+8}" height="26"/>`);
+        const seamName = sa===4 ? "継ぎ目 = 標準ギターの G–B（長3度）" : "継ぎ目（長3度の段 = +1 屈折）";
+        parts.push(`<text class="overlay-lab" x="${W-PAD_R-4}" y="${yGap+4}" font-size="10.5" text-anchor="end">${seamName}</text>`);
+      }
+    }
+
+    // grid: vertical fret guides + horizontal string lines
+    for(let c=0;c<=NCOLS;c++){
+      const x = PAD_L + c*CELL_W;
+      parts.push(`<line class="grid-line" x1="${x}" y1="${PAD_T}" x2="${x}" y2="${PAD_T+NROWS*CELL_H}" stroke-width="1"/>`);
+    }
+    for(let r=0;r<NROWS;r++){
+      parts.push(`<line class="string-line" x1="${PAD_L}" y1="${cy(r)}" x2="${PAD_L+NCOLS*CELL_W}" y2="${cy(r)}" stroke-width="1.3"/>`);
+    }
+
+    // fret labels (relative to root; transposition-invariant)
+    for(let c=0;c<NCOLS;c++){
+      const off = (fLo + c) - state.root.fret;
+      const t = off===0 ? "R" : (off>0 ? "+"+off : String(off));
+      parts.push(`<text class="fretlab" x="${cx(c)}" y="${H-8}" font-size="${off===0?11:9.5}" text-anchor="middle"${off===0?' font-weight="700"':''}>${t}</text>`);
+    }
+
+    // houndstooth weave (千鳥タイル): repeat ONE triad tile across the seamless
+    // plane. Tile = {R, 3rd@(+1str,-1fr), 5th@(+1str,+2fr)} — a compact major
+    // triad that, stamped at every root, tiles the triad cells EXACTLY once
+    // (verified 34/34, no gap/overlap). The interlocking 2-tone diagonal fill is
+    // the dense weave the CAGED faces are mere crops of. Seamless modes only.
+    const htSvg = [];
+    const htOn = state.houndstooth && isMajorTriad() && state.mode !== "guitar";
+    if(htOn){
+      for(let s = tS + 2; s >= tS - NROWS - 1; s--){
+        for(let f = fLo - 2; f <= fLo + NCOLS + 1; f++){
+          if(posmod(openPcAbs(s)+f - rAbs, 12) !== 0) continue;   // root (pc 0) cell only
+          const oct = (openPcAbs(s)+f - rAbs) / 12;               // integer at a root
+          const tone = posmod(s + oct, 2) === 0;
+          const col = tone ? "hsl(265 55% 60%)" : "hsl(150 52% 50%)";
+          const pts = [[s,f],[s+1,f-1],[s+1,f+2]]
+            .map(([vs,vf]) => `${cx(colOf(vf)).toFixed(1)},${cy(rowOf(vs)).toFixed(1)}`).join(" ");
+          htSvg.push(`<polygon points="${pts}" fill="${col}" fill-opacity="0.15" stroke="${col}" stroke-opacity="0.4" stroke-width="1.3"/>`);
+        }
+      }
+    }
+
+    // member dots + ghosts (collect cells for tritone edge selection)
+    const memberCells = [];                              // {r,c,s,f,pc}
+    const dotSvg = [], ghostSvg = [], hitSvg = [], ivSvg = [];
+    for(let r=0;r<NROWS;r++){
+      const s = tS - r;
+      for(let c=0;c<NCOLS;c++){
+        const f = fLo + c;
+        const pc = posmod(openPcAbs(s)+f-rAbs, 12);
+        const isMember = pcs.indexOf(pc) >= 0;
+        // A11y + feature A: member -> degree (R/♭3/3/5); non-member -> interval
+        // class from root (m2..M7). Never mix the two label families.
+        const aria = `弦 ${s}、フレット ${f} = ${isMember ? "和音構成音 "+chordDegreeLabel(pc) : intervalClassLabel(pc)}（pc ${pc}）。クリックでルート`;
+        hitSvg.push(`<rect class="hit" role="button" tabindex="0" data-s="${s}" data-f="${f}" `+
+          `x="${PAD_L+c*CELL_W}" y="${PAD_T+r*CELL_H}" width="${CELL_W}" height="${CELL_H}" aria-label="${esc(aria)}"/>`);
+        if(!isMember){
+          // feature A toggle: faint interval-class label on every non-member cell
+          if(state.showIntervals)
+            ivSvg.push(`<text class="iv-faint" x="${cx(c)}" y="${cy(r)+4}" font-size="11">${intervalClassLabel(pc)}</text>`);
+          continue;
+        }
+        memberCells.push({r,c,s,f,pc});
+        const label = chordDegreeLabel(pc);
+        dotSvg.push(`<circle class="${dotClass(pc)}" cx="${cx(c)}" cy="${cy(r)}" r="${DOT_R}"/>`);
+        dotSvg.push(`<text class="lbl" x="${cx(c)}" y="${cy(r)+4.5}" font-size="${label.length>1?12:14}">${esc(label)}</text>`);
+        // I6: ring on the actually-clicked root cell (must survive the click)
+        if(s === state.root.string && f === state.root.fret)
+          dotSvg.push(`<circle class="dot-ring" cx="${cx(c)}" cy="${cy(r)}" r="${DOT_R+4}"/>`);
+        // guitar seam ghost: pre-seam (all-fourths) position is one fret LOWER.
+        // Confined to the shifted instrument strings (seam..5).
+        if(showSeam && s >= state.seam && s <= 5){
+          const gc = c - 1;
+          if(gc >= 0){
+            ghostSvg.push(`<circle class="ghost" cx="${cx(gc)}" cy="${cy(r)}" r="${DOT_R-2}"/>`);
+            ghostSvg.push(`<text class="ghost-lab" x="${(cx(gc)+cx(c))/2}" y="${cy(r)-DOT_R-2}" font-size="9">+1→</text>`);
+          }
+        }
+      }
+    }
+
+    // tritone red edges: ONE per set-pair, on a representative adjacent-string
+    // cell pair nearest the clicked root (stable across root moves).
+    const edgeSvg = [];
+    for(const [p,q] of tritonePairs()){
+      let best=null, bestScore=Infinity;
+      for(const a of memberCells){ if(a.pc!==p) continue;
+        for(const b of memberCells){ if(b.pc!==q) continue;
+          if(Math.abs(a.s-b.s)!==1) continue;            // adjacent strings
+          const score = Math.abs(a.f-state.root.fret)+Math.abs(a.s-state.root.string)
+                      + Math.abs(b.f-state.root.fret)+Math.abs(b.s-state.root.string)
+                      + a.s*0.001 + a.f*0.0001;           // deterministic tiebreak
+          if(score < bestScore){ bestScore=score; best=[a,b]; }
+        }
+      }
+      if(best){
+        const [a,b] = best;
+        edgeSvg.push(`<line class="tt-edge" x1="${cx(a.c)}" y1="${cy(a.r)}" x2="${cx(b.c)}" y2="${cy(b.r)}"/>`);
+        edgeSvg.push(`<text class="tt-lab" x="${(cx(a.c)+cx(b.c))/2}" y="${(cy(a.r)+cy(b.r))/2-7}" font-size="9.5">TT</text>`);
+      }
+    }
+
+    // CAGED grip highlight (phase-3): the selected form's 6-string barre shape,
+    // a crop of the tiled membership. hull = translucent box; rings outline the
+    // grip cells; big letter names the form.
+    const cagedHull = [], cagedTop = [];
+    const puzzleOn = cagedPuzzle;
+    const singleOn = state.cagedForm !== null && cagedEnabled() && state.cagedTarget !== null;
+    if(puzzleOn || singleOn){
+      const ladder = cagedLadder(state.cagedTarget);
+      // puzzle palette: 5 distinct hues so the interlocking pieces read apart (C A G E D)
+      const HUES = [265, 200, 45, 145, 330];
+      // seamless plane: de-kink = undo the G–B +1 on the above-seam (B/e) cells so
+      // each grip lands back on the all-fourths triad tile. The five de-kinked
+      // pieces interlock diagonally = houndstooth (千鳥格子). Verified: de-kink
+      // preserves the pc-set (guitar grip == de-kinked grip, an inversion).
+      const dekink = state.mode !== "guitar";
+      // kind: false=primary(filled+labelled) / true=focus-dim / "tile"=plane-fill copy (faint outline)
+      const drawForm = (idx, kind, dS=0, dF=0) => {
+        const F = ladder[idx], tile = kind === "tile";
+        const col = `hsl(${HUES[idx]} 72% ${tile?62:(kind?58:64)}%)`;
+        let minC=NCOLS, maxC=-1, minR=NROWS, maxR=-1, any=false;
+        for(const [s, fo] of F.cells){
+          const f = fo + F.shift - ((dekink && s >= 4) ? 1 : 0) + dF;
+          const r = rowOf(s + dS), c = colOf(f);
+          if(r<0||r>=NROWS||c<0||c>=NCOLS) continue;
+          any = true;
+          minC=Math.min(minC,c); maxC=Math.max(maxC,c); minR=Math.min(minR,r); maxR=Math.max(maxR,r);
+          if(!tile) cagedTop.push(`<circle class="caged-cell" cx="${cx(c)}" cy="${cy(r)}" r="${DOT_R+5}" style="stroke:${col};opacity:${kind?0.72:1}"/>`);
+        }
+        if(any){
+          const x = PAD_L+minC*CELL_W+4, y = PAD_T+minR*CELL_H+4;
+          const w = (maxC-minC+1)*CELL_W-8, h = (maxR-minR+1)*CELL_H-8;
+          cagedHull.push(`<rect class="caged-hull" x="${x}" y="${y}" width="${w}" height="${h}" rx="14" style="stroke:${col};fill:${col};fill-opacity:${tile?0.04:(kind?0.06:0.11)};stroke-opacity:${tile?0.5:0.9}"/>`);
+          if(!tile) cagedTop.push(`<text class="caged-lab" x="${x+w/2}" y="${y-9}" font-size="${kind?15:20}" text-anchor="middle" style="fill:${col}">${F.L}形</text>`);
+        }
+      };
+      if(puzzleOn){
+        const hasFocus = singleOn;                                          // focus only in guitar
+        // Band at FIXED absolute positions, octave-repeated along the NECK (X)
+        // so it never leaves the view horizontally yet visibly SLIDES as you
+        // re-root against the stable frame. Vertically it's a single 6-string
+        // band framed by the fixed view (the whole-plane Y fill is ▦千鳥タイル's
+        // job — stacking bands here was the flood that read as too dense).
+        const mLo = Math.floor((fLo - 14) / 12), mHi = Math.ceil((fLo + NCOLS + 2) / 12);
+        for(let m = mLo; m <= mHi; m++){
+          const dF = 12 * m;
+          for(let i=0;i<5;i++){
+            if(hasFocus && i===state.cagedForm && dF===0) continue;
+            drawForm(i, hasFocus, 0, dF);
+          }
+        }
+        if(hasFocus) drawForm(state.cagedForm, false, 0, 0);                // focused piece bright on top
+      } else {
+        drawForm(state.cagedForm, false);
+      }
+    }
+
+    // z-order: bg/grid -> caged hull -> faint intervals -> ghosts -> edges -> dots -> caged rings -> hits
+    board.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    board.setAttribute("width", W);
+    board.setAttribute("height", H);
+    board.innerHTML = parts.join("") + htSvg.join("") + cagedHull.join("") + ivSvg.join("") + ghostSvg.join("")
+      + edgeSvg.join("") + dotSvg.join("") + cagedTop.join("") + hitSvg.join("");
+
+    renderControls();
+  }
+
+  function renderControls(){
+    document.querySelectorAll("[data-mode]").forEach(b =>
+      b.setAttribute("aria-pressed", String(b.dataset.mode === state.mode)));
+    document.querySelectorAll("[data-third]").forEach(b =>
+      b.setAttribute("aria-pressed", String(+b.dataset.third === state.third)));
+    document.querySelectorAll("[data-fifth]").forEach(b =>
+      b.setAttribute("aria-pressed", String(+b.dataset.fifth === state.fifth)));
+    document.querySelectorAll("[data-seam]").forEach(b =>
+      b.setAttribute("aria-pressed", String(+b.dataset.seam === state.seam)));
+    // the seam control only makes sense for the standard-guitar (wrinkled) mode
+    document.querySelector(".seam-grp").style.display = state.mode === "guitar" ? "flex" : "none";
+    $("toggleIntervals").setAttribute("aria-pressed", String(state.showIntervals));
+
+    // CAGED control: single-form grips are a guitar view; the 5形パズル works in
+    // any mode for a major triad (guitar=kinked, plane/crop=de-kinked houndstooth).
+    const cagedOk = cagedEnabled();                  // single-form: guitar + major
+    const puzzleOk = isMajorTriad();                 // 5形パズル: any mode + major
+    document.querySelector(".caged-grp").style.display = (state.mode === "guitar" || puzzleOk) ? "flex" : "none";
+    document.querySelectorAll("[data-caged], #cagedNext, #cagedOff").forEach(b => b.disabled = !cagedOk);
+    $("cagedAll").disabled = !puzzleOk;
+    const htOk = isMajorTriad() && state.mode !== "guitar";   // 千鳥タイル: seamless plane only
+    $("houndstooth").disabled = !htOk;
+    document.querySelectorAll("[data-caged]").forEach(b =>
+      b.setAttribute("aria-pressed", String(cagedOk && +b.dataset.caged === state.cagedForm)));
+    $("cagedAll").setAttribute("aria-pressed", String(puzzleOk && state.cagedAll));
+    $("houndstooth").setAttribute("aria-pressed", String(htOk && state.houndstooth));
+    $("cagedNote").textContent = state.cagedAll && puzzleOk
+      ? (state.mode === "guitar"
+          ? "5形同時 = C→A→G→E→D が連結ループする1枚のパズル。無限平面/全4度へ切替で千鳥格子に畳まれる。"
+          : "全4度平面: 5形を de-kink（継ぎ目の+1を戻す）して千鳥格子にタイル。標準ギターへ切替でキンクが戻る。")
+      : (cagedOk
+          ? "5形をアンカーに。上へ C→A→G→E→D とタイル。◇5形パズルで全形を重ね、平面へ切替で千鳥格子。"
+          : "CAGED はメジャー三和音の体系。M3+P5 で有効（◇5形パズルは全モードで動く）。");
+
+    const key = state.third + "_" + state.fifth;
+    const nm = CHORD_NAMES[key];
+    $("chordName").innerHTML = nm
+      ? `<b>${nm[0]}</b> <span style="color:var(--muted);font-size:13px">${nm[1]}</span>`
+      : `<b>その他の3和音</b>`;
+    $("chordPcs").innerHTML =
+      `<span class="hint">構成音 { R, ${intervalClassLabel(state.third)}, ${intervalClassLabel(state.fifth)} } `+
+      `= pc {0, ${state.third}, ${state.fifth}}</span>`;
+    const ntt = tritonePairs().length;
+    $("chordTt").textContent = ntt ? `トライトーン ${ntt} 本（赤辺）` : "トライトーンなし";
+
+    const caps = {
+      plane:  "<b>無限平面（生成器）</b>。全4度で弦が上下に無限に続く一枚の面。ここが全ての楽器の母体。任意のセルをルートにでき、形はそのまま平行移動する。",
+      crop:   "<b>6弦クロップ（全4度）</b>。無限平面から6弦ぶんを切り出した窓＝継ぎ目のない一枚の形。どのルートでも同じ形が動く。",
+      guitar: "<b>標準ギター</b>。同じクロップに局所 −1 欠陥（継ぎ目）を1か所だけ入れたもの。継ぎ目より上の弦の音は継ぎ目前の位置（点線ゴースト）から +1 フレットへ屈折する。CAGED の『5つの形』はこの1つの継ぎ目が一枚の形を歪めた影。<b>継ぎ目位置</b>を動かすと周りの形が歪む — なぜ実機が G–B（=4）に置くか、押さえやすさで体感できる。",
+    };
+    $("modeCap").innerHTML = caps[state.mode];
+    if(state.cagedAll && isMajorTriad() && state.mode === "guitar"){
+      $("modeCap").innerHTML += `<br><b>CAGED = 1枚のパズル —</b> 5形 C→A→G→E→D は互いに連結してネックを一周する。G–B 継ぎ目が対角の反復を切るので、この5枚は横 <b>12フレット（1オクターブ）</b>に展開して初めて一周する。<b>無限平面/全4度へ切り替える</b>と継ぎ目が消え、5形を de-kink すると対角に <b>千鳥格子</b>（周期2フレット）で密にハマる。密度は横 span でなく反復周期（12fr→2fr）。`;
+    } else if(state.cagedAll && isMajorTriad()){
+      $("modeCap").innerHTML += `<br><b>千鳥格子のパズル（全4度平面）—</b> 標準ギターの5形を、G–B 継ぎ目で +1 された B・e 弦だけ元へ戻して（de-kink）この面に置いた。三和音は保たれ（C/A/D は転回違い）、5枚が対角に <b>千鳥（houndstooth）</b>状にタイルする — 標準の横12fr展開が対角周期 <b>2フレット</b>の密パズルに畳まれた。継ぎ目という1つの欠陥が、この千鳥を5つの顔にほどいていた。<b>標準ギターへ切替</b>でキンクが戻り5形に割れる。`;
+    } else if(cagedEnabled() && state.cagedForm !== null){
+      const F = cagedLadder(state.cagedTarget)[state.cagedForm];
+      $("modeCap").innerHTML += `<br><b>CAGED —</b> 継ぎ目ゼロなら和音の形は1つ。G–B 継ぎ目を1個入れた瞬間、同じ和音がネック上で5つの顔に割れる＝これが CAGED。ずらすと C→A→G→E→D。5形を暗記していた人は、実はこの1枚を無意識に切り取っていた。<b>いま = ${F.L}形</b>（フレット ${F.anchorFret} 付近）。`;
+    } else if(state.mode !== "guitar" && isMajorTriad()){
+      $("modeCap").innerHTML += `<br><b>密度 —</b> 継ぎ目ゼロのこの面では和音の模様が対角に周期 <b>2フレット</b>（弦+2,フレ+2）で反復する。標準ギター（継ぎ目あり）は横 <b>12フレット</b>の反復＝約6倍疎。CAGED の「5つの形」はこの密タイルを継ぎ目が割った影。`;
+    }
+    if(state.houndstooth && isMajorTriad() && state.mode !== "guitar"){
+      $("modeCap").innerHTML += `<br><b>千鳥タイル —</b> 1つの三和音タイル（R・3度・5度）を全ルート位置に反復して平面を敷き詰めた。各タイルが対角に噛み合い、三和音セルを過不足なく1回ずつ覆う（検証 34/34）。この2色の織り = houndstooth が全4度平面の密なタイリングそのもの。◇5形パズルと重ねると、CAGED の5つの顔がこの織りの窓（crop）だと見える。`;
+    }
+  }
+
+  /* ---- interaction -------------------------------------------------------- */
+  function clearCaged(){ state.cagedForm = null; state.cagedTarget = null; state.cagedAll = false; }
+  function setRoot(s, f){
+    // Puzzle on: a click re-roots the CAGED system to that cell — the chord
+    // transposes and the 5 shapes re-tile (rotate) around the new root. Which
+    // shape sits at the click depends on its string, exactly as CAGED works.
+    if(state.cagedAll && isMajorTriad()){
+      state.cagedTarget = posmod(openPcAbs(s) + f, 12);
+      state.cagedForm = null;
+      state.root = {string:s, fret:f};
+      // stable frame: pan the fret window only when the root leaves it, so a
+      // re-root visibly slides the band/root-ring across a steady grid. The
+      // 6-string band stays framed vertically (view.string fixed).
+      if(f < state.view.fret - 7 || f > state.view.fret + 7) state.view.fret = f;
+      render();
+      return;
+    }
+    clearCaged(); state.root = {string:s, fret:f}; render();   // otherwise re-root exits CAGED
+  }
+  function setMode(m){
+    state.mode = m;
+    if(m !== "guitar") state.cagedForm = null;   // single-form grip is a guitar view
+    if(!isMajorTriad()) clearCaged();            // any CAGED view needs a major triad
+    // keep the 6-string instrument (+ its clicked root) visible in crop/guitar
+    if(m !== "plane") state.root.string = Math.max(0, Math.min(5, state.root.string));
+    render();   // puzzle band anchors at the root + root-centred viewport (see render)
+  }
+  // CAGED: pick form idx -> snap to the real G–B seam, park the root on the form's
+  // anchor, highlight the grip. cagedTarget (the chord identity) is captured once
+  // on engage and preserved as the root hops between the 5 anchor positions.
+  function setCaged(idx){
+    if(!cagedEnabled()) return;
+    state.seam = 4;                                  // CAGED is the seam=4 instance
+    if(state.cagedTarget === null) state.cagedTarget = posmod(rootAbs(), 12);
+    const F = cagedLadder(state.cagedTarget)[idx];
+    state.root = {string:F.anchorStr, fret:F.anchorFret};
+    state.cagedForm = idx;
+    render();
+  }
+  const cagedNext = () => setCaged(state.cagedForm === null ? 0 : (state.cagedForm + 1) % 5);
+  // 5形パズル: overlay all five grips at once (interlocking loop). Centre the
+  // viewport on the middle (G) form so the whole C→A→G→E→D chain stays on screen.
+  // Fit the whole 5-piece puzzle inside the fixed viewport so no form (esp. the
+  // low C form) is clipped at the plane edge. Sets root so fMin (and topString in
+  // plane mode) frame the pieces' bounding box, centred with a small margin.
+  function frameCagedPuzzle(){
+    if(!(state.cagedAll && isMajorTriad() && state.cagedTarget !== null)) return;
+    const ladder = cagedLadder(state.cagedTarget);
+    const dekink = state.mode !== "guitar";
+    let minF = Infinity, maxF = -Infinity, maxS = -Infinity;
+    for(const F of ladder) for(const [s, fo] of F.cells){
+      const f = fo + F.shift - ((dekink && s >= 4) ? 1 : 0);
+      if(f < minF) minF = f; if(f > maxF) maxF = f; if(s > maxS) maxS = s;
+    }
+    const span = maxF - minF;
+    const lead = Math.max(1, Math.floor((NCOLS - 1 - span) / 2));   // centre horizontally
+    state.root.fret = minF - lead + 2;                             // fMin = root.fret-2 = minF-lead
+    if(state.mode === "plane") state.root.string = (maxS + 1) - 5; // topString = maxS+1 (1-row margin above)
+  }
+  function toggleCagedAll(){
+    if(!isMajorTriad()) return;                      // puzzle works in any mode; guitar=kinked, plane/crop=houndstooth
+    if(state.mode === "guitar") state.seam = 4;
+    state.cagedAll = !state.cagedAll;
+    if(state.cagedAll){
+      if(state.cagedTarget === null) state.cagedTarget = posmod(rootAbs(), 12);
+      state.cagedForm = null;                        // puzzle view: no single focused form
+      state.view = {string: state.mode === "plane" ? 2 : state.root.string, fret: state.root.fret};   // frame the 6-string band; pin the stable frame
+    }
+    render();
+  }
+
+  // event delegation on a stable parent (board is re-rendered each time)
+  $("boardwrap").addEventListener("click", e => {
+    const r = e.target.closest(".hit");
+    if(r) setRoot(+r.dataset.s, +r.dataset.f);
+  });
+  $("boardwrap").addEventListener("keydown", e => {
+    if(e.key === "Enter" || e.key === " " || e.key === "Spacebar"){
+      const r = e.target.closest(".hit");
+      if(r){ e.preventDefault(); setRoot(+r.dataset.s, +r.dataset.f); }
+    }
+  });
+  document.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => setMode(b.dataset.mode));
+  document.querySelectorAll("[data-third]").forEach(b => b.onclick = () => { state.third = +b.dataset.third; if(!isMajorTriad()) clearCaged(); render(); });
+  document.querySelectorAll("[data-fifth]").forEach(b => b.onclick = () => { state.fifth = +b.dataset.fifth; if(!isMajorTriad()) clearCaged(); render(); });
+  // moving the seam leaves the CAGED (seam=4) instance -> a different 5-form alphabet
+  document.querySelectorAll("[data-seam]").forEach(b => b.onclick = () => { state.seam = +b.dataset.seam; if(state.seam !== 4) clearCaged(); render(); });
+  $("toggleIntervals").onclick = () => { state.showIntervals = !state.showIntervals; render(); };
+  document.querySelectorAll("[data-caged]").forEach(b => b.onclick = () => setCaged(+b.dataset.caged));
+  $("cagedNext").onclick = cagedNext;
+  $("cagedAll").onclick = toggleCagedAll;
+  $("houndstooth").onclick = () => {
+    if(!(isMajorTriad() && state.mode !== "guitar")) return;
+    state.houndstooth = !state.houndstooth;
+    render();
+  };
+  $("cagedOff").onclick = () => { clearCaged(); state.houndstooth = false; render(); };
+
+  // feature A: hover / focus any cell -> read its interval from the root
+  function showCell(s, f){
+    const pc = pcAt(s, f);
+    const off = f - state.root.fret;
+    const rel = off === 0 ? "R列" : (off>0 ? "+"+off+"フレット" : off+"フレット");
+    const body = member(s, f)
+      ? `和音構成音 <b>${chordDegreeLabel(pc)}</b>`
+      : `ルートから <b>${intervalClassLabel(pc)}</b>`;
+    $("cellReadout").innerHTML = `このセル = ${body} <span class="pc">(pc ${pc})</span> ・ ${rel}`;
+  }
+  function clearCell(){
+    $("cellReadout").innerHTML = "セルにカーソル / フォーカス → ルートからの音程を表示（継ぎ目でズレた指が何の音になるか）。";
+  }
+  const cellFromEvt = e => e.target.closest(".hit");
+  $("boardwrap").addEventListener("mouseover", e => { const r = cellFromEvt(e); if(r) showCell(+r.dataset.s, +r.dataset.f); });
+  $("boardwrap").addEventListener("mouseout",  e => { if(cellFromEvt(e)) clearCell(); });
+  $("boardwrap").addEventListener("focusin",   e => { const r = cellFromEvt(e); if(r) showCell(+r.dataset.s, +r.dataset.f); });
+  $("boardwrap").addEventListener("focusout",  e => { if(cellFromEvt(e)) clearCell(); });
+
+  // expose for self-verification (gate[4] bug-hunt)
+  window.__fb = { posmod, openPcAbs, rootAbs, refAbs, member, pcAt, chordPcs, tritonePairs,
+                  intervalClassLabel, chordDegreeLabel, cagedLadder, CAGED, state,
+                  setMode, setRoot, setCaged, toggleCagedAll, isMajorTriad, cagedEnabled, render };
+
+  render();
+})();
+</script>
